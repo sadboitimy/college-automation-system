@@ -1,0 +1,75 @@
+# ================================
+# Django & Python
+# ================================
+
+# База данных
+*.sqlite3
+*.db
+db.sqlite3
+db.sqlite3-journal
+
+# Миграции (можно раскомментировать если не хотите их в репозитории)
+# */migrations/*.py
+# !*/migrations/__init__.py
+
+# Питон
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Логи
+*.log
+local_settings.py
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Временные файлы
+*.tmp
+*.temp
+
+# ================================
+# Виртуальное окружение
+# ================================
+
+# .venv уже игнорируется своим файлом, но для надежности:
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# ================================
+# Операционные системы
+# ================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
