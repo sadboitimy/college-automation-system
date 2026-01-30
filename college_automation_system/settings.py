@@ -103,9 +103,17 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+# Формат даты по умолчанию для всего проекта
+DATE_INPUT_FORMAT = [
+    '%d.%m.%Y',
+]
 
-TIME_ZONE = 'UTC'
+DATE_FORMAT = 'd.m.Y'      # Формат отображения
+SHORT_DATE_FORMAT = 'd.m.Y'
+
+LANGUAGE_CODE = 'ru-ru'
+
+TIME_ZONE = 'Europe/Moscow'
 
 USE_I18N = True
 
