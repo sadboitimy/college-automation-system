@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Студенты{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Студенты</h2>
+        <div>
+            <a href="{% url 'student_create' %}" class="btn btn-success">
+                <i class="fas fa-plus"></i> Добавить студента
+            </a>
+            <a href="{% url 'home' %}" class="btn btn-outline-secondary">Назад</a>
+            
+        </div>
+    </div>
+
+    <!-- Фильтры -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Группа</label>
+                    <select name="group" class="form-select">
+                        <option value="">Все группы</option>
+                        {% for group in groups %}
+                            <option value="{{ group.id }}" 
+                                {% if group.id|stringformat:"s" == selected_group %}selected{% endif %}>
+                                {{ group.GroupName }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Поиск по имени</label>
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Введите имя студента..." 
+                           value="{{ search_query }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Применить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Список студентов -->
+    <div class="row">
+        {% for student in students %}
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ student.Name }}</h5>
+                    <p class="card-text">
+                        <strong>Группа:</strong> {{ student.Group.GroupName }}<br>
+                        <strong>Курс:</strong> {{ student.Group.Course }}<br>
+                        <strong>Специальность:</strong> {{ student.Group.get_Specialization_display }}<br>
+                        <strong>Номер зачетки:</strong> {{ student.TokenNum }}<br>
+                        <strong>Email:</strong> {{ student.Email }}
+                    </p>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'student_detail' student.id %}" class="btn btn-sm btn-primary">
+                        Подробнее
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                Студенты не найдены
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Пагинация -->
+    {% if students.has_other_pages %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if students.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ students.previous_page_number }}">&laquo;</a>
+            </li>
+            {% endif %}
+            
+            {% for num in students.paginator.page_range %}
+            <li class="page-item {% if students.number == num %}active{% endif %}">
+                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+            </li>
+            {% endfor %}
+            
+            {% if students.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ students.next_page_number }}">&raquo;</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

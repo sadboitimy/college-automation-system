@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Удалить преподавателя{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">Подтверждение удаления</h4>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Вы уверены, что хотите удалить преподавателя?</p>
+                    
+                    <div class="alert alert-warning">
+                        <strong>{{ teacher.Name }}</strong><br>
+                        Должность: {{ teacher.Post }}<br>
+                        Кафедра: {{ teacher.Department }}
+                    </div>
+                    
+                    {% with subjects_count=teacher.subjects_set.count %}
+                    {% if subjects_count > 0 %}
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i>
+                        Внимание! У преподавателя {{ subjects_count }} предметов.
+                        Они будут переназначены или удалены.
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'teacher_detail' teacher.id %}" class="btn btn-secondary">
+                                Отмена
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Удалить
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

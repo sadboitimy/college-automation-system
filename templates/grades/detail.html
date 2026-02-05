@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+
+{% block title %}Оценка - {{ grade.Student.Name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Детали оценки</h2>
+        <div>
+            <a href="{% url 'grade_update' grade.id %}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Редактировать
+            </a>
+            <a href="{% url 'grade_delete' grade.id %}" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Удалить
+            </a>
+            <a href="{% url 'grades_list' %}" class="btn btn-outline-secondary">
+                Назад к списку
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Основная информация -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Информация об оценке</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Студент:</strong><br>
+                        <a href="{% url 'student_detail' grade.Student.id %}" class="fs-5">
+                            {{ grade.Student.Name }}
+                        </a><br>
+                        <small class="text-muted">
+                            Группа: {{ grade.Student.Group.GroupName }}<br>
+                            Номер зачетки: {{ grade.Student.TokenNum }}
+                        </small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Предмет:</strong><br>
+                        <a href="{% url 'subject_detail' grade.Subject.id %}" class="fs-5">
+                            {{ grade.Subject.SubjectName }}
+                        </a>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <strong>Дата:</strong><br>
+                            <span class="fs-5">{{ grade.Date|date:"d.m.Y" }}</span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Тип оценки:</strong><br>
+                            <span class="fs-5">{{ grade.get_GradeType_display }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Оценка и статистика -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Оценка</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="display-1 mb-3 
+                        {% if grade.Mark >= 85 %}text-success
+                        {% elif grade.Mark >= 60 %}text-primary
+                        {% else %}text-danger{% endif %}">
+                        {{ grade.Mark }}
+                    </div>
+                    
+                    <div class="mb-4">
+                        {% if grade.Mark >= 85 %}
+                            <span class="badge bg-success fs-6">Отлично</span>
+                        {% elif grade.Mark >= 70 %}
+                            <span class="badge bg-primary fs-6">Хорошо</span>
+                        {% elif grade.Mark >= 60 %}
+                            <span class="badge bg-warning fs-6">Удовлетворительно</span>
+                        {% else %}
+                            <span class="badge bg-danger fs-6">Неудовлетворительно</span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Дополнительная информация -->
+                    <div class="text-start">
+                        <p><strong>Статус:</strong>
+                            {% if grade.Mark >= 60 %}
+                                <span class="text-success">Сдано</span>
+                            {% else %}
+                                <span class="text-danger">Не сдано</span>
+                            {% endif %}
+                        </p>
+                        
+                        <!-- Средняя оценка студента по этому предмету -->
+                        {% with avg_mark=grade.Student.grades_set.filter.Subject=grade.Subject|avg:'Mark' %}
+                        {% if avg_mark %}
+                        <p><strong>Средний балл по предмету:</strong>
+                            <span class="badge bg-info">{{ avg_mark|floatformat:1 }}</span>
+                        </p>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Другие оценки студента по этому предмету -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5>Другие оценки по этому предмету</h5>
+                </div>
+                <div class="card-body">
+                    {% with other_grades=grade.Student.grades_set.filter.Subject=grade.Subject.exclude.id=grade.id|slice:":5" %}
+                    {% if other_grades %}
+                    <div class="list-group">
+                        {% for other_grade in other_grades %}
+                        <a href="{% url 'grade_detail' other_grade.id %}" 
+                           class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    {{ other_grade.get_GradeType_display }} - 
+                                    {{ other_grade.Date|date:"d.m.Y" }}
+                                </div>
+                                <span class="badge 
+                                    {% if other_grade.Mark >= 85 %}bg-success
+                                    {% elif other_grade.Mark >= 60 %}bg-primary
+                                    {% else %}bg-danger{% endif %}">
+                                    {{ other_grade.Mark }}
+                                </span>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">Других оценок нет</p>
+                    {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

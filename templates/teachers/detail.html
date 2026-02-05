@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ teacher.Name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{{ teacher.Name }}</h2>
+        <div>
+            <a href="{% url 'teacher_update' teacher.id %}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Редактировать
+            </a>
+            <a href="{% url 'teacher_delete' teacher.id %}" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Удалить
+            </a>
+            <a href="{% url 'teachers_list' %}" class="btn btn-outline-secondary">
+                Назад к списку
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Основная информация -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Основная информация</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Должность:</strong> {{ teacher.Post }}</p>
+                    <p><strong>Кафедра:</strong> {{ teacher.Department }}</p>
+                    <p><strong>Email:</strong> {{ teacher.Email }}</p>
+                </div>
+            </div>
+            
+            <!-- Предметы -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5>Ведет предметы</h5>
+                </div>
+                <div class="card-body">
+                    {% if subjects %}
+                    <div class="list-group">
+                        {% for subject in subjects %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ subject.SubjectName }}</strong><br>
+                                    <small class="text-muted">
+                                        {{ subject.NumOfHours }} часов
+                                        {% if subject.Description %}
+                                            <br>{{ subject.Description|truncatechars:50 }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <span class="badge bg-secondary">{{ subject.NumOfHours }} ч.</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">Нет назначенных предметов</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Расписание -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Расписание занятий</h5>
+                </div>
+                <div class="card-body">
+                    {% if schedule %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Дата</th>
+                                    <th>Время</th>
+                                    <th>Предмет</th>
+                                    <th>Группа</th>
+                                    <th>Аудитория</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lesson in schedule %}
+                                <tr>
+                                    <td>{{ lesson.Date|date:"d.m.Y" }}</td>
+                                    <td>{{ lesson.Time|time:"H:i" }}</td>
+                                    <td>
+                                        <a href="#">
+                                            {{ lesson.Subject.SubjectName }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'group_detail' lesson.Group.id %}">
+                                            {{ lesson.Group.GroupName }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if lesson.Classroom %}
+                                            {{ lesson.Classroom.Building }}, ауд. {{ lesson.Classroom.Number }}
+                                        {% else %}
+                                            <span class="text-muted">Не указана</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">Расписание не найдено</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Группы преподавателя -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5>Преподает группам</h5>
+                </div>
+                <div class="card-body">
+                    {% if schedule %}
+                    <div class="row">
+                        {% regroup schedule by Group as groups_list %}
+                        {% for group_item in groups_list %}
+                        <div class="col-md-6 mb-2">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6>
+                                        <a href="{% url 'group_detail' group_item.grouper.id %}">
+                                            {{ group_item.grouper.GroupName }}
+                                        </a>
+                                    </h6>
+                                    <p class="mb-1">
+                                        <small>
+                                            Курс: {{ group_item.grouper.Course }}<br>
+                                            Специальность: {{ group_item.grouper.get_Specialization_display }}
+                                        </small>
+                                    </p>
+                                    <p class="mb-0">
+                                        <small class="text-muted">
+                                            Предметы: 
+                                            {% for lesson in group_item.list|slice:":2" %}
+                                                {{ lesson.Subject.SubjectName }}{% if not forloop.last %}, {% endif %}
+                                            {% endfor %}
+                                            {% if group_item.list|length > 2 %}
+                                                ...
+                                            {% endif %}
+                                        </small>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">Нет групп</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

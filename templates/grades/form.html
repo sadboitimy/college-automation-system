@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if action == 'create' %}
+        Добавить оценку
+    {% else %}
+        Редактировать оценку
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">{{ title }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.Student.id_for_label }}" class="form-label">
+                                    Студент *
+                                </label>
+                                {{ form.Student }}
+                                {% if form.Student.errors %}
+                                <div class="text-danger">
+                                    {{ form.Student.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.Subject.id_for_label }}" class="form-label">
+                                    Предмет *
+                                </label>
+                                {{ form.Subject }}
+                                {% if form.Subject.errors %}
+                                <div class="text-danger">
+                                    {{ form.Subject.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.Date.id_for_label }}" class="form-label">
+                                    Дата *
+                                </label>
+                                {{ form.Date }}
+                                {% if form.Date.errors %}
+                                <div class="text-danger">
+                                    {{ form.Date.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.GradeType.id_for_label }}" class="form-label">
+                                    Тип оценки *
+                                </label>
+                                {{ form.GradeType }}
+                                {% if form.GradeType.errors %}
+                                <div class="text-danger">
+                                    {{ form.GradeType.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.Mark.id_for_label }}" class="form-label">
+                                Оценка *
+                            </label>
+                            {{ form.Mark }}
+                            {% if form.Mark.errors %}
+                            <div class="text-danger">
+                                {{ form.Mark.errors }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">Введите оценку от 0 до 100</div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'grades_list' %}" class="btn btn-outline-secondary">
+                                Отмена
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                {% if action == 'create' %}
+                                    <i class="fas fa-plus"></i> Добавить
+                                {% else %}
+                                    <i class="fas fa-save"></i> Сохранить
+                                {% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const inputs = document.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        if (!input.classList.contains('form-control')) {
+            input.classList.add('form-control');
+        }
+    });
+    
+    // Установка ограничений для оценки
+    const markInput = document.querySelector('#id_Mark');
+    if (markInput) {
+        markInput.min = 0;
+        markInput.max = 100;
+    }
+});
+</script>
+{% endblock %}

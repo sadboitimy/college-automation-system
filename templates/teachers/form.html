@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if action == 'create' %}
+        Добавить преподавателя
+    {% else %}
+        Редактировать преподавателя
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">{{ title }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.Name.id_for_label }}" class="form-label">
+                                ФИО преподавателя *
+                            </label>
+                            {{ form.Name }}
+                            {% if form.Name.errors %}
+                            <div class="text-danger">
+                                {{ form.Name.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.Post.id_for_label }}" class="form-label">
+                                    Должность *
+                                </label>
+                                {{ form.Post }}
+                                {% if form.Post.errors %}
+                                <div class="text-danger">
+                                    {{ form.Post.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.Department.id_for_label }}" class="form-label">
+                                    Кафедра *
+                                </label>
+                                {{ form.Department }}
+                                {% if form.Department.errors %}
+                                <div class="text-danger">
+                                    {{ form.Department.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.Email.id_for_label }}" class="form-label">
+                                Email *
+                            </label>
+                            {{ form.Email }}
+                            {% if form.Email.errors %}
+                            <div class="text-danger">
+                                {{ form.Email.errors }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">Введите действующий email адрес</div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'teachers_list' %}" class="btn btn-outline-secondary">
+                                Отмена
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                {% if action == 'create' %}
+                                    <i class="fas fa-plus"></i> Добавить
+                                {% else %}
+                                    <i class="fas fa-save"></i> Сохранить
+                                {% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Автоматически добавляем класс form-control ко всем полям ввода
+    const inputs = document.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        if (!input.classList.contains('form-control')) {
+            input.classList.add('form-control');
+        }
+    });
+});
+</script>
+{% endblock %}

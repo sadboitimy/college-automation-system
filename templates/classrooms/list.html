@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block title %}Аудитории{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Аудитории</h2>
+        <div>
+            <a href="{% url 'classroom_create' %}" class="btn btn-success">
+                <i class="fas fa-plus"></i> Добавить аудиторий
+            </a>
+            <a href="{% url 'home' %}" class="btn btn-outline-secondary">Назад</a>
+        </div>
+    </div>
+    
+    <!-- Фильтры -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Корпус</label>
+                    <select name="building" class="form-select">
+                        <option value="">Все корпуса</option>
+                        {% for building in buildings %}
+                            <option value="{{ building }}"
+                                {% if building == selected_building %}selected{% endif %}>
+                                {{ building }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Минимальная вместимость</label>
+                    <input type="number" name="min_capacity" class="form-control" 
+                           placeholder="Например: 20" 
+                           value="{{ selected_min_capacity }}">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Применить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Список аудиторий -->
+    <div class="row">
+        {% for classroom in classrooms %}
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        {{ classroom.Building }} Корпус, ауд. {{ classroom.Number }}
+                    </h5>
+                    <p class="card-text">
+                        <strong>Вместимость:</strong> {{ classroom.Capacity }} мест<br>
+                        <strong>Статус:</strong> 
+                        {% with schedule_count=classroom.schedule_set.count %}
+                            {% if schedule_count > 0 %}
+                                <span class="badge bg-warning">Занята ({{ schedule_count }})</span>
+                            {% else %}
+                                <span class="badge bg-success">Свободна</span>
+                            {% endif %}
+                        {% endwith %}
+                    </p>
+                </div>
+                <div class="card-footer">
+                    <div class="btn-group btn-group-sm">
+                        <a href="{% url 'classroom_detail' classroom.id %}" class="btn btn-outline-primary">
+                            Подробнее
+                        </a>
+                        <a href="{% url 'classroom_update' classroom.id %}" class="btn btn-outline-warning">
+                            Редактировать
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'classroom_delete' classroom.id %}" class="btn btn-outline-danger">
+                            Удалить
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                Аудитории не найдены
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

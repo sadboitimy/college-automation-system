@@ -1,0 +1,15 @@
+{% extends 'form_base.html' %}
+
+{% block title %}
+    {% if action == 'create' %}
+        Добавить студента
+    {% else %}
+        Редактировать студента
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {% with back_url='students_list' %}
+        {{ block.super }}
+    {% endwith %}
+{% endblock %}

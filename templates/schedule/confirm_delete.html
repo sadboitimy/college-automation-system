@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Удалить занятие{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">Подтверждение удаления</h4>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Вы уверены, что хотите удалить занятие?</p>
+                    
+                    <div class="alert alert-warning">
+                        <strong>Дата:</strong> {{ schedule_item.Date|date:"d.m.Y" }}<br>
+                        <strong>Время:</strong> {{ schedule_item.Time|time:"H:i" }}<br>
+                        <strong>Предмет:</strong> {{ schedule_item.Subject.SubjectName }}<br>
+                        <strong>Группа:</strong> {{ schedule_item.Group.GroupName }}<br>
+                        <strong>Преподаватель:</strong> {{ schedule_item.Teacher.Name }}
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'schedule' %}" class="btn btn-secondary">
+                                Отмена
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Удалить
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

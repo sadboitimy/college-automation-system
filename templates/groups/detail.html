@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ group.GroupName }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Группа: {{ group.GroupName }}</h2>
+        <div>
+            <a href="{% url 'group_update' group.id %}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Редактировать
+            </a>
+            <a href="{% url 'group_delete' group.id %}" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Удалить
+            </a>
+            <a href="{% url 'groups_list' %}" class="btn btn-outline-secondary">
+                Назад к списку
+            </a>
+        </div>
+    </div>
+        
+
+    <div class="row">
+        <!-- Основная информация -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Информация о группе</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Название:</strong> {{ group.GroupName }}</p>
+                    <p><strong>Курс:</strong> {{ group.get_Course_display }}</p>
+                    <p><strong>Специальность:</strong> {{ group.get_Specialization_display }}</p>
+                    
+                    <div class="mt-4">
+                        <h6>Статистика:</h6>
+                        <div class="d-flex justify-content-between">
+                            <span>Количество студентов:</span>
+                            <span class="badge bg-primary">{{ students.count }}</span>
+                        </div>
+                        {% with schedule_count=group.schedule_set.count %}
+                        <div class="d-flex justify-content-between mt-1">
+                            <span>Занятий в расписании:</span>
+                            <span class="badge bg-success">{{ schedule_count }}</span>
+                        </div>
+                        {% endwith %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Быстрые действия -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5>Действия</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'students_list' %}?group={{ group.id }}" 
+                           class="btn btn-outline-primary">
+                            <i class="fas fa-users me-1"></i> Список студентов
+                        </a>
+                        <a href="{% url 'schedule' %}?group={{ group.id }}" 
+                           class="btn btn-outline-success">
+                            <i class="fas fa-calendar-alt me-1"></i> Расписание
+                        </a>
+                        <a href="#" class="btn btn-outline-info">
+                            <i class="fas fa-chart-bar me-1"></i> Статистика
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Студенты группы -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Студенты группы</h5>
+                </div>
+                <div class="card-body">
+                    {% if students %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>ФИО</th>
+                                    <th>Номер студенческого билета</th>
+                                    <th>Дата рождения</th>
+                                    <th>Email</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in students %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>
+                                        <a href="{% url 'student_detail' student.id %}">
+                                            {{ student.Name }}
+                                        </a>
+                                    </td>
+                                    <td>{{ student.TokenNum }}</td>
+                                    <td>{{ student.DateOfBirth|date:"d.m.Y" }}</td>
+                                    <td>{{ student.Email }}</td>
+                                    <td>
+                                        <a href="{% url 'student_detail' student.id %}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            Профиль
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">В группе нет студентов</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Расписание группы -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Расписание</h5>
+                        <a href="{% url 'schedule' %}?group={{ group.id }}" 
+                           class="btn btn-sm btn-outline-secondary">
+                            Полное расписание
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if schedule %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Дата</th>
+                                    <th>Время</th>
+                                    <th>Предмет</th>
+                                    <th>Преподаватель</th>
+                                    <th>Аудитория</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lesson in schedule|slice:":5" %}
+                                <tr>
+                                    <td>{{ lesson.Date|date:"d.m.Y" }}</td>
+                                    <td>{{ lesson.Time|time:"H:i" }}</td>
+                                    <td>{{ lesson.Subject.SubjectName }}</td>
+                                    <td>
+                                        <a href="{% url 'teacher_detail' lesson.Teacher.id %}">
+                                            {{ lesson.Teacher.Name }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if lesson.Classroom %}
+                                            {{ lesson.Classroom.Building }}, ауд. {{ lesson.Classroom.Number }}
+                                        {% else %}
+                                            <span class="text-muted">Не указана</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">Расписание не найдено</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

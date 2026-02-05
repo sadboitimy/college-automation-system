@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ subject.SubjectName }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{{ subject.SubjectName }}</h2>
+        <div>
+            <a href="{% url 'subject_update' subject.id %}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Редактировать
+            </a>
+            <a href="{% url 'subject_delete' subject.id %}" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Удалить
+            </a>
+            <a href="{% url 'subjects_list' %}" class="btn btn-outline-secondary">
+                Назад к списку
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Основная информация -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Информация о предмете</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Название:</strong> {{ subject.SubjectName }}</p>
+                    <p><strong>Количество часов:</strong> {{ subject.NumOfHours }}</p>
+                    <p><strong>Преподаватель:</strong>
+                        {% if subject.Teacher %}
+                            <a href="{% url 'teacher_detail' subject.Teacher.id %}">
+                                {{ subject.Teacher.Name }}
+                            </a>
+                        {% else %}
+                            <span class="text-muted">Не назначен</span>
+                        {% endif %}
+                    </p>
+                    {% if subject.Description %}
+                    <p><strong>Описание:</strong><br>
+                        {{ subject.Description|linebreaks }}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Группы, изучающие предмет -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Группы, изучающие предмет</h5>
+                </div>
+                <div class="card-body">
+                    {% if groups %}
+                    <div class="row">
+                        {% for group in groups %}
+                        <div class="col-md-6 mb-2">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6>
+                                        <a href="{% url 'group_detail' group.id %}">
+                                            {{ group.GroupName }}
+                                        </a>
+                                    </h6>
+                                    <p class="mb-1">
+                                        <small>
+                                            Курс: {{ group.Course }}<br>
+                                            Специальность: {{ group.get_Specialization_display }}
+                                        </small>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">Нет групп, изучающих этот предмет</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Последние оценки по предмету -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5>Последние оценки по предмету</h5>
+                </div>
+                <div class="card-body">
+                    {% if grades %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Студент</th>
+                                    <th>Дата</th>
+                                    <th>Тип</th>
+                                    <th>Оценка</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for grade in grades %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'student_detail' grade.Student.id %}">
+                                            {{ grade.Student.Name }}
+                                        </a>
+                                    </td>
+                                    <td>{{ grade.Date|date:"d.m.Y" }}</td>
+                                    <td>{{ grade.get_GradeType_display }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if grade.Mark >= 85 %}bg-success
+                                            {% elif grade.Mark >= 60 %}bg-primary
+                                            {% else %}bg-danger{% endif %}">
+                                            {{ grade.Mark }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">Оценок пока нет</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

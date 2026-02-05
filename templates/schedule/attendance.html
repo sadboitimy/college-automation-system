@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}Посещаемость - {{ schedule.Subject.SubjectName }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Заголовок и навигация -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'schedule' %}">Расписание</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'schedule_detail' schedule.id %}">{{ schedule.Subject.SubjectName }}</a></li>
+            <li class="breadcrumb-item active">Посещаемость</li>
+        </ol>
+    </nav>
+    
+    <!-- Заголовок страницы -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Отметить посещаемость</h2>
+            <p class="text-muted mb-0">
+                {{ schedule.Date|date:"d.m.Y" }} в {{ schedule.Time|time:"H:i" }} | 
+                {{ schedule.Subject.SubjectName }} | 
+                Группа: {{ schedule.Group.GroupName }}
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'schedule_detail' schedule.id %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Назад к занятию
+            </a>
+        </div>
+    </div>
+    
+    <!-- Форма посещаемости -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Студенты группы</h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Студент</th>
+                                <th>Статус посещаемости</th>
+                                <th>Причина отсутствия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students %}
+                            <tr>
+                                <td>
+                                    <strong>{{ student.Name }}</strong><br>
+                                    <small class="text-muted">{{ student.TokenNum }}</small>
+                                </td>
+                                <td>
+                                    <select name="status_{{ student.id }}" class="form-select" 
+                                            onchange="toggleReasonField({{ student.id }}, this.value)">
+                                        <option value="attended" 
+                                            {% if student_attendance.student.id.status == 'attended' %}selected{% endif %}>
+                                            Присутствовал
+                                        </option>
+                                        <option value="absent_with_reason"
+                                            {% if student_attendance.student.id.status == 'absent_with_reason' %}selected{% endif %}>
+                                            Отсутствовал (уважительная причина)
+                                        </option>
+                                        <option value="absent_without_reason"
+                                            {% if student_attendance.student.id.status == 'absent_without_reason' %}selected{% endif %}>
+                                            Отсутствовал (без причины)
+                                        </option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="text" 
+                                           name="reason_{{ student.id }}"
+                                           class="form-control reason-field"
+                                           id="reason_{{ student.id }}"
+                                           placeholder="Укажите причину..."
+                                           value="{{ student_attendance.student.id.reason|default:'' }}"
+                                           {% if student_attendance.student.id.status == 'absent_without_reason' %}style="display: none;"{% endif %}>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted">
+                                    В группе нет студентов
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>       
+                    <button type="submit" class="btn btn-primary float-end">
+                        <i class="fas fa-save"></i> Сохранить посещаемость
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleReasonField(studentId, status) {
+    const reasonField = document.getElementById('reason_' + studentId);
+    if (status === 'absent_with_reason') {
+        reasonField.style.display = 'block';
+        reasonField.required = true;
+    } else {
+        reasonField.style.display = 'none';
+        reasonField.required = false;
+        if (status === 'attended' || status === 'absent_without_reason') {
+            reasonField.value = '';
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const statusSelects = document.querySelectorAll('select[name^="status_"]');
+    statusSelects.forEach(select => {
+        const studentId = select.name.replace('status_', '');
+        toggleReasonField(studentId, select.value);
+    });
+});
+</script>
+{% endblock %}

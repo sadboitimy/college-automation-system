@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}Удалить аудиторию{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">Подтверждение удаления</h4>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Вы уверены, что хотите удалить аудиторию?</p>
+                    
+                    <div class="alert alert-warning">
+                        <strong>{{ classroom.Building }}, ауд. {{ classroom.Number }}</strong><br>
+                        Вместимость: {{ classroom.Capacity }} мест
+                    </div>
+                    
+                    {% with schedule_count=classroom.schedule_set.count %}
+                    {% if schedule_count > 0 %}
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i>
+                        Внимание! В этой аудитории запланировано {{ schedule_count }} занятий.
+                        Они будут переназначены или удалены.
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'classroom_detail' classroom.id %}" class="btn btn-secondary">
+                                Отмена
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Удалить
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

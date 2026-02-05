@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}Удалить предмет{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">Подтверждение удаления</h4>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Вы уверены, что хотите удалить предмет?</p>
+                    
+                    <div class="alert alert-warning">
+                        <strong>{{ subject.SubjectName }}</strong><br>
+                        {% if subject.Teacher %}
+                            Преподаватель: {{ subject.Teacher.Name }}<br>
+                        {% endif %}
+                        Часы: {{ subject.NumOfHours }}
+                    </div>
+                    
+                    <p class="text-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Внимание! Будут удалены все связанные записи в расписании и оценках.
+                    </p>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'subject_detail' subject.id %}" class="btn btn-secondary">
+                                Отмена
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Удалить
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

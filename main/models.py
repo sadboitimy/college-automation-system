@@ -1,10 +1,11 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
-
+from django.utils import timezone
 
 # Create your models here.
 
 class Groups(models.Model):
+# Группы
 
     CourseChoices=[
         (1, '1'),
@@ -31,6 +32,8 @@ class Groups(models.Model):
         return f'GroupName={self.GroupName}, Course={self.Course}, Specialization={self.Specialization}'   
     
 class Students(models.Model):
+#Студенты
+
     Name=models.CharField(max_length=100)
     Group=models.ForeignKey(Groups, on_delete=models.CASCADE)
     DateOfBirth=models.DateField()
@@ -41,6 +44,8 @@ class Students(models.Model):
         return f'Name={self.Name}, Group={self.Group.GroupName}, DateOfBirth={self.DateOfBirth}, TokenNum={self.TokenNum}, Email={self.Email}'
     
 class Teachers(models.Model):
+#Преподаватели
+
     Name=models.CharField(max_length=100)
     Post=models.CharField(max_length=100)
     Department=models.CharField(max_length=200)
@@ -50,6 +55,8 @@ class Teachers(models.Model):
         return f'Name={self.Name}, Post={self.Post}, Department={self.Department}, Email={self.Email}'
     
 class Subjects(models.Model):
+#Дисциплины
+
     SubjectName=models.CharField(max_length=200)
     Description=models.TextField(blank=True)
     NumOfHours=models.PositiveIntegerField()
@@ -59,6 +66,8 @@ class Subjects(models.Model):
         return f'SubjectName={self.SubjectName}, Description={self.Description}, NumOfHours={self.NumOfHours}, Teacher={self.Teacher}'
     
 class Classrooms(models.Model):
+#Аудитории
+
     Number=models.IntegerField()
     Building=models.CharField(max_length=100)
     Capacity=models.PositiveIntegerField()
@@ -67,6 +76,8 @@ class Classrooms(models.Model):
         return f'Number={self.Number}, Building={self.Building}, Capacity={self.Capacity}'
     
 class Schedule(models.Model):
+#Расписание
+
     Date=models.DateField()
     Time=models.TimeField()
     Subject=models.ForeignKey(Subjects, on_delete=models.CASCADE)
@@ -78,6 +89,7 @@ class Schedule(models.Model):
         return f'Date={self.Date}, Time={self.Time}, Subject={self.Subject}, Classroom={self.Classroom}, Teacher={self.Teacher}, Group={self.Group}'
     
 class Grades(models.Model):
+#Оценки
 
     GradeType_list=[
         ('test', 'Зачет'),
@@ -94,6 +106,7 @@ class Grades(models.Model):
                     default=0)
     
 class Attendance(models.Model):
+#Посещаемость
 
     Status_list=[
         ('attended', 'Присутствовал'),
@@ -106,6 +119,9 @@ class Attendance(models.Model):
     Status=models.CharField(choices=Status_list, max_length=30)
     Schedule=models.ForeignKey(Schedule, on_delete=models.CASCADE, null=True, blank=True)
     Date=models.DateField()
+    Reason=models.TextField(blank=True, null=True)
+    Created_at=models.DateTimeField(default=timezone.now)
+    Updated_at=models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f'Student={self.Student}, subject={self.Subject}, Date={self.Date}, Status={self.Status}'

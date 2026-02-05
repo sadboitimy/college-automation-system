@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block title %}Оценки{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Оценки</h2>
+        <div>
+            <a href="{% url 'grade_create' %}" class="btn btn-success">
+                <i class="fas fa-plus"></i> Добавить
+            </a>
+            <a href="{% url 'home' %}" class="btn btn-outline-secondary">Назад</a>
+        </div>
+    </div>
+    
+    <!-- Фильтры -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Студент</label>
+                    <select name="student" class="form-select">
+                        <option value="">Все студенты</option>
+                        {% for student in students %}
+                            <option value="{{ student.id }}"
+                                {% if student.id|stringformat:"s" == selected_student %}selected{% endif %}>
+                                {{ student.Name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Предмет</label>
+                    <select name="subject" class="form-select">
+                        <option value="">Все предметы</option>
+                        {% for subject in subjects %}
+                            <option value="{{ subject.id }}"
+                                {% if subject.id|stringformat:"s" == selected_subject %}selected{% endif %}>
+                                {{ subject.SubjectName }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Тип оценки</label>
+                    <select name="type" class="form-select">
+                        <option value="">Все типы</option>
+                        {% for type in grade_types %}
+                            <option value="{{ type }}"
+                                {% if type == selected_type %}selected{% endif %}>
+                                {% if type == 'test' %}Зачет
+                                {% elif type == 'exam' %}Экзамен
+                                {% else %}Текущий контроль{% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Применить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Таблица оценок -->
+    {% if grades %}
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Студент</th>
+                    <th>Предмет</th>
+                    <th>Дата</th>
+                    <th>Тип</th>
+                    <th>Оценка</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for grade in grades %}
+                <tr>
+                    <td>{{ grade.Student.Name }}</td>
+                    <td>{{ grade.Subject.SubjectName }}</td>
+                    <td>{{ grade.Date|date:"d.m.Y" }}</td>
+                    <td>{{ grade.get_GradeType_display }}</td>
+                    <td>
+                        <span class="badge 
+                            {% if grade.Mark >= 85 %}bg-success
+                            {% elif grade.Mark >= 60 %}bg-primary
+                            {% else %}bg-danger{% endif %}">
+                            {{ grade.Mark }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        Оценки не найдены
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+
+{% block title %}Занятие - {{ schedule.Subject.SubjectName }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Детали занятия</h2>
+        <div>
+            <a href="{% url 'schedule_update' schedule.id %}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Редактировать
+            </a>
+            <a href="{% url 'schedule_delete' schedule.id %}" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Удалить
+            </a>
+            
+            <a href="{% url 'schedule' %}" class="btn btn-outline-secondary">
+                Назад к расписанию
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Основная информация -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Информация о занятии</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <strong>Дата и время:</strong><br>
+                            <span class="fs-4">
+                                {{ schedule.Date|date:"d.m.Y" }} в {{ schedule.Time|time:"H:i" }}
+                            </span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>День недели:</strong><br>
+                            <span class="fs-4">
+                                {{ schedule.Date|date:"l" }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Предмет:</strong><br>
+                        <a href="{% url 'subject_detail' schedule.Subject.id %}" class="fs-4">
+                            {{ schedule.Subject.SubjectName }}
+                        </a><br>
+                        <small class="text-muted">
+                            {% if schedule.Subject.Description %}
+                                {{ schedule.Subject.Description|truncatechars:100 }}
+                            {% endif %}
+                        </small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <strong>Группа:</strong><br>
+                            <a href="{% url 'group_detail' schedule.Group.id %}" class="fs-5">
+                                {{ schedule.Group.GroupName }}
+                            </a><br>
+                            <small class="text-muted">
+                                Курс: {{ schedule.Group.Course }}<br>
+                                Специальность: {{ schedule.Group.get_Specialization_display }}
+                            </small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Преподаватель:</strong><br>
+                            <a href="{% url 'teacher_detail' schedule.Teacher.id %}" class="fs-5">
+                                {{ schedule.Teacher.Name }}
+                            </a><br>
+                            <small class="text-muted">
+                                {{ schedule.Teacher.Post }}<br>
+                                {{ schedule.Teacher.Department }}
+                            </small>
+                        </div>
+                    </div>
+                    
+                    {% if schedule.Classroom %}
+                    <div class="mb-3">
+                        <strong>Аудитория:</strong><br>
+                        <a href="{% url 'classroom_detail' schedule.Classroom.id %}" class="fs-5">
+                            {{ schedule.Classroom.Building }}, ауд. {{ schedule.Classroom.Number }}
+                        </a><br>
+                        <small class="text-muted">
+                            Вместимость: {{ schedule.Classroom.Capacity }} мест
+                        </small>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Аудитория не назначена
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'schedule_attendance' schedule.id %}" class="btn btn-success">
+                        <i class="fas fa-clipboard-check"></i> Отметить посещаемость
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Список студентов группы -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5>Студенты группы ({{ schedule.Group.students_set.count }})</h5>
+                </div>
+                <div class="card-body">
+                    {% with students=schedule.Group.students_set.all %}
+                    {% if students %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>ФИО</th>
+                                    <th>Номер зачетки</th>
+                                    <th>Посещаемость</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in students %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>
+                                        <a href="{% url 'student_detail' student.id %}">
+                                            {{ student.Name }}
+                                        </a>
+                                    </td>
+                                    <td>{{ student.TokenNum }}</td>
+                                    <td>
+                                        {% for attendance in student.attendance_set.all %}
+                                            {% if attendance.Subject == schedule.Subject and attendance.Date == schedule.Date %}
+                                                {% if attendance.Status == 'attended' %}
+                                                    <span class="badge bg-success">Присутствовал</span>
+                                                {% elif attendance.Status == 'absent' %}
+                                                    <span class="badge bg-danger">Отсутствовал</span>
+                                                {% else %}
+                                                    <span class="badge bg-warning">Уважительная</span>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% empty %}
+                                            <span class="badge bg-secondary">Не отмечен</span>
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">В группе нет студентов</p>
+                    {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Дополнительная информация -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Быстрые действия</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'schedule_attendance' schedule.id %}" class="btn btn-outline-primary">
+                            <i class="fas fa-clipboard-check me-2"></i> Отметить посещаемость
+                        </a>
+                        <a href="{% url 'grade_create' %}?subject={{ schedule.Subject.id }}&group={{ schedule.Group.id }}" 
+                           class="btn btn-outline-success">
+                            <i class="fas fa-graduation-cap me-2"></i> Выставить оценки
+                        </a>
+                        <a href="{% url 'schedule' %}?group={{ schedule.Group.id }}" 
+                           class="btn btn-outline-info">
+                            <i class="fas fa-calendar-alt me-2"></i> Расписание группы
+                        </a>
+                        <a href="{% url 'schedule' %}?teacher={{ schedule.Teacher.id }}" 
+                           class="btn btn-outline-info">
+                            <i class="fas fa-chalkboard-teacher me-2"></i> Расписание преподавателя
+                        </a>
+                    </div>
+                </div>
+            </div>
+                
+        </div>
+    </div>
+</div>
+{% endblock %}

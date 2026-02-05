@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Предметы{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Предметы</h2>
+        <div>
+            <a href="{% url 'subject_create' %}" class="btn btn-success">
+                <i class="fas fa-plus"></i> Добавить предмет
+            </a>
+            <a href="{% url 'home' %}" class="btn btn-outline-secondary">Назад</a>
+        </div>
+    </div>
+    
+    <!-- Фильтры -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Преподаватель</label>
+                    <select name="teacher" class="form-select">
+                        <option value="">Все преподаватели</option>
+                        {% for teacher in teachers %}
+                            <option value="{{ teacher.id }}"
+                                {% if teacher.id|stringformat:"s" == selected_teacher %}selected{% endif %}>
+                                {{ teacher.Name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Поиск по названию</label>
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Введите название предмета..." 
+                           value="{{ search_query }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Применить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Список предметов -->
+    <div class="row">
+        {% for subject in subjects %}
+        <div class="col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ subject.SubjectName }}</h5>
+                    <p class="card-text">
+                        {% if subject.Description %}
+                            <small class="text-muted">{{ subject.Description|truncatechars:100 }}</small><br>
+                        {% endif %}
+                        <strong>Количество часов:</strong> {{ subject.NumOfHours }}<br>
+                        <strong>Преподаватель:</strong> 
+                        {% if subject.Teacher %}
+                            <a href="{% url 'teacher_detail' subject.Teacher.id %}">
+                                {{ subject.Teacher.Name }}
+                            </a>
+                        {% else %}
+                            <span class="text-muted">Не назначен</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="card-footer">
+                    <div class="btn-group btn-group-sm">
+                        <a href="{% url 'subject_detail' subject.id %}" class="btn btn-outline-primary">
+                            Подробнее
+                        </a>
+                        <a href="{% url 'subject_update' subject.id %}" class="btn btn-outline-warning">
+                            Редактировать
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'subject_delete' subject.id %}" class="btn btn-outline-danger">
+                            Удалить
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                Предметы не найдены
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

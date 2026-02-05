@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block title %}Посещаемость - {{ attendance.Student.Name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">Запись о посещаемости</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Информация о студенте -->
+                    <div class="mb-4">
+                        <h5>Студент</h5>
+                        <p><strong>ФИО:</strong> 
+                            <a href="{% url 'student_detail' attendance.Student.id %}">
+                                {{ attendance.Student.Name }}
+                            </a>
+                        </p>
+                        <p><strong>Группа:</strong> {{ attendance.Student.Group.GroupName }}</p>
+                        <p><strong>Номер зачетки:</strong> {{ attendance.Student.TokenNum }}</p>
+                    </div>
+                    
+                    <!-- Информация о занятии -->
+                    <div class="mb-4">
+                        <h5>Занятие</h5>
+                        <p><strong>Предмет:</strong> 
+                            <a href="{% url 'subject_detail' attendance.Subject.id %}">
+                                {{ attendance.Subject.SubjectName }}
+                            </a>
+                        </p>
+                        <p><strong>Дата:</strong> {{ attendance.Date|date:"d.m.Y" }}</p>
+                        {% if attendance.Schedule %}
+                        <p><strong>Время:</strong> {{ attendance.Schedule.Time|time:"H:i" }}</p>
+                        <p><strong>Преподаватель:</strong> {{ attendance.Schedule.Teacher.Name }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Статус посещаемости -->
+                    <div class="mb-4">
+                        <h5>Статус посещаемости</h5>
+                        
+                        {% if attendance.Status == 'attended' %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle fa-lg me-2"></i>
+                            <strong>Присутствовал</strong>
+                        </div>
+                        {% elif attendance.Status == 'absent' %}
+                        <div class="alert alert-danger">
+                            <i class="fas fa-times-circle fa-lg me-2"></i>
+                            <strong>Отсутствовал</strong>
+                            {% if attendance.Reason %}
+                            <p class="mt-2 mb-0"><strong>Причина:</strong> {{ attendance.Reason }}</p>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-question-circle fa-lg me-2"></i>
+                            <strong>Уважительная причина</strong>
+                            {% if attendance.Reason %}
+                            <p class="mt-2 mb-0"><strong>Причина:</strong> {{ attendance.Reason }}</p>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Дополнительная информация -->
+                    <div class="text-muted">
+                        <small>
+                            Запись создана: {{ attendance.Created_at|date:"d.m.Y H:i" }}<br>
+                            Последнее обновление: {{ attendance.Updated_at|date:"d.m.Y H:i" }}
+                        </small>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        {% if attendance.Schedule %}
+                        <a href="{% url 'schedule_attendance' attendance.Schedule.id %}" 
+                           class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Назад к посещаемости
+                        </a>
+                        {% else %}
+                        <a href="{% url 'schedule' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Назад к расписанию
+                        </a>
+                        {% endif %}
+                        
+                        <div>
+                            <a href="{% url 'attendance_update' attendance.id %}" class="btn btn-warning">
+                                <i class="fas fa-edit"></i> Изменить
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

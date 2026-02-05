@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if action == 'create' %}
+        Добавить аудиторию
+    {% else %}
+        Редактировать аудиторию
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">{{ title }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.Number.id_for_label }}" class="form-label">
+                                    Номер аудитории *
+                                </label>
+                                {{ form.Number }}
+                                {% if form.Number.errors %}
+                                <div class="text-danger">
+                                    {{ form.Number.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.Building.id_for_label }}" class="form-label">
+                                    Корпус *
+                                </label>
+                                {{ form.Building }}
+                                {% if form.Building.errors %}
+                                <div class="text-danger">
+                                    {{ form.Building.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.Capacity.id_for_label }}" class="form-label">
+                                Вместимость *
+                            </label>
+                            {{ form.Capacity }}
+                            {% if form.Capacity.errors %}
+                            <div class="text-danger">
+                                {{ form.Capacity.errors }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">Количество мест в аудитории</div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'classrooms_list' %}" class="btn btn-outline-secondary">
+                                Отмена
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                {% if action == 'create' %}
+                                    <i class="fas fa-plus"></i> Добавить
+                                {% else %}
+                                    <i class="fas fa-save"></i> Сохранить
+                                {% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const inputs = document.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        if (!input.classList.contains('form-control')) {
+            input.classList.add('form-control');
+        }
+    });
+});
+</script>
+{% endblock %}
