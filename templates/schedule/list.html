@@ -14,7 +14,6 @@
         </div>
     </div>
     
-    <!-- Фильтры -->
     <div class="card mb-4">
         <div class="card-body">
             <form method="get" class="row g-3">
@@ -44,7 +43,7 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Дата</label>
-                    <input type="date" name="date" class="form-control" value="{{ selected_date }}">
+                    <input type="date" name="date" class="form-control" value="{{ date_filter }}">
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
                     <button type="submit" class="btn btn-primary w-100">Применить</button>
@@ -53,50 +52,208 @@
         </div>
     </div>
     
-    <!-- Таблица расписания -->
-    {% if schedule %}
-    <div class="table-responsive">
-        <table class="table table-striped table-hover">
-            <thead class="table-dark">
-                <tr>
-                    <th>Дата</th>
-                    <th>Время</th>
-                    <th>Предмет</th>
-                    <th>Группа</th>
-                    <th>Преподаватель</th>
-                    <th>Аудитория</th>
-                    <th>Действия</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for lesson in schedule %}
-                <tr>
-                    <td>{{ lesson.Date|date:"d.m.Y" }}</td>
-                    <td>{{ lesson.Time|time:"H:i" }}</td>
-                    <td>{{ lesson.Subject.SubjectName }}</td>
-                    <td>{{ lesson.Group.GroupName }}</td>
-                    <td>{{ lesson.Teacher.Name }}</td>
-                    <td>
-                        {% if lesson.Classroom %}
-                            {{ lesson.Classroom.Building }}, ауд. {{ lesson.Classroom.Number }}
-                        {% else %}
-                            <span class="text-muted">Не указана</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <a href="{% url 'schedule_detail' lesson.id %}" class="btn btn-sm btn-info">Подробнее
-                            <i class="fas fa-eye"></i>
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+    <!-- Расписание выбранной группы на неделю -->
+    {% if selected_group %}
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    Расписание группы {{ selected_group_obj.GroupName }} 
+                    <span class="text-light">
+                        (неделя с {{ week_schedule.0.date|date:"d.m.Y" }})
+                    </span>
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="text-center">Понедельник<br><small>{{ week_schedule.0.date|date:"d.m" }}</small></th>
+                                <th class="text-center">Вторник<br><small>{{ week_schedule.1.date|date:"d.m" }}</small></th>
+                                <th class="text-center">Среда<br><small>{{ week_schedule.2.date|date:"d.m" }}</small></th>
+                                <th class="text-center">Четверг<br><small>{{ week_schedule.3.date|date:"d.m" }}</small></th>
+                                <th class="text-center">Пятница<br><small>{{ week_schedule.4.date|date:"d.m" }}</small></th>
+                                <th class="text-center">Суббота<br><small>{{ week_schedule.5.date|date:"d.m" }}</small></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                {% for day_schedule in week_schedule %}
+                                <td style="vertical-align: top; min-width: 160px;">
+                                    {% if day_schedule.lessons %}
+                                        {% for lesson in day_schedule.lessons %}
+                                            <div class="card mb-2 border-primary">
+                                                <div class="card-body p-2">
+                                                    <small class="text-muted d-block">{{ lesson.Time|time:"H:i" }}</small>
+                                                    <strong class="d-block">{{ lesson.Subject.SubjectName }}</strong>
+                                                    <small class="d-block">{{ lesson.Teacher.Name }}</small>
+                                                    <small class="text-muted d-block">
+                                                        {% if lesson.Classroom %}
+                                                            ауд. {{ lesson.Classroom.Number }}
+                                                        {% else %}
+                                                            -
+                                                        {% endif %}
+                                                    </small>
+                                                    <a href="{% url 'schedule_detail' lesson.id %}" 
+                                                       class="btn btn-sm btn-outline-primary mt-1 w-100">
+                                                       Подробнее
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="text-center py-3">
+                                            <i class="fas fa-calendar-times text-muted"></i>
+                                            <p class="text-muted mb-0 small">Нет занятий</p>
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    
+    <!-- Общее расписание на день -->
+{% else %}
+    {% if grouped_schedule %}
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    Расписание на {{ selected_date|date:"d.m.Y" }}
+                    <span class="float-end small">
+                        {{ selected_date|date:"l" }}
+                    </span>
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                {% for group_id, group_data in grouped_schedule.items %}
+                                    <th class="text-center">
+                                        <a href="{% url 'schedule' %}?group={{ group_id }}" 
+                                           class="text-decoration-none">
+                                            {{ group_data.group.GroupName }}
+                                        </a>
+                                        <br>
+                                        <small class="text-muted">{{ group_data.lessons|length }} занятий</small>
+                                    </th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                {% for group_id, group_data in grouped_schedule.items %}
+                                    <td style="vertical-align: top; min-width: 180px;">
+                                        {% for lesson in group_data.lessons %}
+                                            <div class="card mb-2 {% if lesson.Classroom %}border-success{% else %}border-warning{% endif %}">
+                                                <div class="card-body p-2">
+                                                    <small class="text-muted d-block">{{ lesson.Time|time:"H:i" }}</small>
+                                                    <strong class="d-block">{{ lesson.Subject.SubjectName }}</strong>
+                                                    <small class="d-block">{{ lesson.Teacher.Name }}</small>
+                                                    <small class="d-block">
+                                                        {% if lesson.Classroom %}
+                                                            <span class="badge bg-success">ауд. {{ lesson.Classroom.Number }}</span>
+                                                        {% else %}
+                                                            <span class="badge bg-warning text-dark">ауд. не назначена</span>
+                                                        {% endif %}
+                                                    </small>
+                                                    <div class="mt-1">
+                                                        <a href="{% url 'schedule_detail' lesson.id %}" 
+                                                           class="btn btn-sm btn-outline-info">Подробнее
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                        <a href="{% url 'schedule_attendance' lesson.id %}" 
+                                                           class="btn btn-sm btn-outline-success">Отметить
+                                                            <i class="fas fa-clipboard-check"></i>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer text-muted">
+                <small>Всего занятий: {{ schedule|length }} | Групп: {{ grouped_schedule|length }}</small>
+            </div>
+        </div>
     {% else %}
-    <div class="alert alert-info">
-        Расписание не найдено
-    </div>
+        <div class="alert alert-info">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-info-circle fa-2x me-3"></i>
+                <div>
+                    <h5 class="alert-heading">Расписание не найдено</h5>
+                    <p class="mb-0">
+                        На {{ selected_date|date:"d.m.Y" }} занятий нет.
+                        Попробуйте изменить дату или выбрать конкретную группу.
+                    </p>
+                </div>
+            </div>
+        </div>
     {% endif %}
+{% endif %}
 </div>
+<script>
+// Функции для отображения времени занятий в виде "Время начала - Время окончания"
+(function() {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', updateAllTimeRanges);
+    } else {
+        updateAllTimeRanges();
+    }
+    
+    function formatTime(number) {
+        return number < 10 ? '0' + number : number.toString();
+    }
+    
+    function calculateEndTime(startTime) {
+        if (!startTime || !startTime.includes(':')) return '';
+        
+        const parts = startTime.split(':');
+        let hours = parseInt(parts[0]);
+        let minutes = parseInt(parts[1]);
+        
+        hours += 1;
+        minutes += 30;
+        
+        if (minutes >= 60) {
+            hours += Math.floor(minutes / 60);
+            minutes = minutes % 60;
+        }
+        
+        if (hours >= 24) {
+            hours = hours % 24;
+        }
+        
+        return formatTime(hours) + ':' + formatTime(minutes);
+    }
+    
+    function updateAllTimeRanges() {
+        const timeElements = document.querySelectorAll('[class*="card-body"] small.text-muted.d-block');
+        
+        timeElements.forEach(element => {
+            const currentText = element.textContent.trim();
+            
+            if (currentText.includes('-') || !currentText.includes(':')) {
+                return;
+            }
+            
+            const endTime = calculateEndTime(currentText);
+            if (endTime) {
+                element.textContent = currentText + ' - ' + endTime;
+            }
+        });
+    }
+})();
+</script>
 {% endblock %}

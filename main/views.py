@@ -4,17 +4,19 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.models import User
 from django.views.decorators.http import require_POST
 from .models import Groups, Teachers, Students, Subjects, Attendance, Schedule, Classrooms, Grades
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
 from .forms import StudentsForm, TeachersForm, GroupsForm, SubjectsForm, ScheduleForm, GradesForm, ClassroomsForm
+from django.utils import timezone
+
 
 # Главная страница
 def home(request):
     if not request.user.is_authenticated:
         return render(request, 'home.html')
     
-    # Статистика
+
     context = {
         'students_count': Students.objects.count(),
         'teachers_count': Teachers.objects.count(),
@@ -49,21 +51,17 @@ def register_view(request):
         password1 = request.POST['password1']
         password2 = request.POST['password2']
         
-        # Проверка паролей
         if password1 != password2:
             messages.error(request, 'Пароли не совпадают')
             return render(request, 'register.html')
         
-        # Проверка существования пользователя
         if User.objects.filter(username=username).exists():
             messages.error(request, 'Пользователь с таким именем уже существует')
             return render(request, 'register.html')
         
-        # Создание пользователя
         user = User.objects.create_user(username=username, email=email, password=password1)
         user.save()
         
-        # Автоматический вход
         login(request, user)
         messages.success(request, 'Регистрация успешна!')
         return redirect('home')
@@ -82,19 +80,16 @@ def logout_view(request):
 def students_list(request):
     students = Students.objects.all().order_by('Name')
     
-    # Фильтрация по группе
     group_id = request.GET.get('group', '')
     if group_id:
         students = students.filter(Group_id=group_id)
     
-    # Поиск по имени
     search = request.GET.get('search', '')
     if search:
         students = students.filter(Name__icontains=search)
     
     groups = Groups.objects.all()
     
-    # Пагинация
     paginator = Paginator(students, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -165,41 +160,88 @@ def teacher_detail(request, teacher_id):
     }
     return render(request, 'teachers/detail.html', context)
 
-# Страница с расписанием
+# Страница расписания
 @login_required
 def schedule_view(request):
-    schedule = Schedule.objects.all().order_by('Date', 'Time')
-    
-    # Фильтры
     group_id = request.GET.get('group', '')
     teacher_id = request.GET.get('teacher', '')
     date_filter = request.GET.get('date', '')
     
+    selected_group_obj = None
     if group_id:
-        schedule = schedule.filter(Group_id=group_id)
-    
-    if teacher_id:
-        schedule = schedule.filter(Teacher_id=teacher_id)
-    
-    if date_filter:
         try:
-            date_obj = datetime.strptime(date_filter, '%d-%m-%Y').date()
-            schedule = schedule.filter(Date=date_obj)
+            selected_group_obj = Groups.objects.get(id=group_id)
+        except Groups.DoesNotExist:
+            selected_group_obj = None
+    
+    if not date_filter:
+        selected_date = datetime.now().date()
+        date_filter_str = selected_date.strftime('%Y-%m-%d')
+    else:
+        try:
+            selected_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
+            date_filter_str = date_filter
         except ValueError:
-            pass
+            selected_date = datetime.now().date()
+            date_filter_str = selected_date.strftime('%Y-%m-%d')
+    
+    week_schedule = []
+    schedule_for_date = []
+    grouped_schedule = {}
+    
+    if group_id and selected_group_obj:
+        start_of_week = selected_date - timedelta(days=selected_date.weekday())
+        
+        for i in range(6):
+            day_date = start_of_week + timedelta(days=i)
+            day_lessons = Schedule.objects.filter(
+                Group_id=group_id,
+                Date=day_date
+            ).order_by('Time')
+            
+            if teacher_id:
+                day_lessons = day_lessons.filter(Teacher_id=teacher_id)
+            
+            week_schedule.append({
+                'date': day_date,
+                'day_name': ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'][i],
+                'lessons': day_lessons
+            })
+        
+        schedule_for_date = Schedule.objects.none()
+    
+    else:
+        schedule_for_date = Schedule.objects.filter(Date=selected_date).order_by('Time')
+        
+        if teacher_id:
+            schedule_for_date = schedule_for_date.filter(Teacher_id=teacher_id)
+        
+        for lesson in schedule_for_date:
+            group_id_key = lesson.Group.id
+            if group_id_key not in grouped_schedule:
+                grouped_schedule[group_id_key] = {
+                    'group': lesson.Group,
+                    'lessons': []
+                }
+            grouped_schedule[group_id_key]['lessons'].append(lesson)
     
     groups = Groups.objects.all()
     teachers = Teachers.objects.all()
     
     context = {
-        'schedule': schedule,
+        'schedule': schedule_for_date,
+        'grouped_schedule': grouped_schedule,
         'groups': groups,
         'teachers': teachers,
         'selected_group': group_id,
+        'selected_group_obj': selected_group_obj,
         'selected_teacher': teacher_id,
-        'selected_date': date_filter,
+        'selected_date': selected_date,
+        'date_filter': date_filter_str,
+        'week_schedule': week_schedule,
     }
     return render(request, 'schedule/list.html', context)
+
 
 # Конкретное занятие в расписании
 @login_required
@@ -226,7 +268,6 @@ def schedule_detail(request, schedule_id):
 def grades_view(request):
     grades = Grades.objects.all().order_by('-Date')
     
-    # Фильтры
     student_id = request.GET.get('student', '')
     subject_id = request.GET.get('subject', '')
     grade_type = request.GET.get('type', '')
@@ -240,7 +281,6 @@ def grades_view(request):
     if grade_type:
         grades = grades.filter(GradeType=grade_type)
     
-    # Данные для фильтров
     students = Students.objects.all()
     subjects = Subjects.objects.all()
     grade_types = [choice[0] for choice in Grades.GradeType_list]
@@ -261,7 +301,6 @@ def grades_view(request):
 def grade_detail(request, grade_id):
     grade = get_object_or_404(Grades, id=grade_id)
     
-    # Другие оценки студента по этому предмету
     other_grades = Grades.objects.filter(
         Student=grade.Student,
         Subject=grade.Subject
@@ -278,7 +317,6 @@ def grade_detail(request, grade_id):
 def groups_list(request):
     groups = Groups.objects.all().order_by('GroupName')
     
-    # Фильтры
     course = request.GET.get('course', '')
     specialization = request.GET.get('specialization', '')
     
@@ -302,10 +340,8 @@ def groups_list(request):
 def group_detail(request, group_id):
     group = Groups.objects.get(id=group_id)
     
-    # Студенты группы
     students = Students.objects.filter(Group=group).order_by('Name')
     
-    # Расписание группы
     schedule = Schedule.objects.filter(Group=group).order_by('Date', 'Time')
     
     context = {
@@ -343,7 +379,6 @@ def subjects_list(request):
 def subject_detail(request, subject_id):
     subject = get_object_or_404(Subjects, id=subject_id)
     
-    # Фильтры
     groups = Groups.objects.filter(schedule__Subject=subject).distinct()
     
     schedule = Schedule.objects.filter(Subject=subject).order_by('Date', 'Time')
@@ -386,7 +421,6 @@ def classrooms_list(request):
 def classroom_detail(request, classroom_id):
     classroom = get_object_or_404(Classrooms, id=classroom_id)
     
-    # Расписание аудитории
     schedule = Schedule.objects.filter(Classroom=classroom).order_by('Date', 'Time')
     
     context = {
@@ -395,6 +429,7 @@ def classroom_detail(request, classroom_id):
     }
     return render(request, 'classrooms/detail.html', context)
 
+# Страница с посещаемостью
 @login_required
 def schedule_attendance(request, schedule_id):
     schedule_item = get_object_or_404(Schedule, id=schedule_id)
@@ -441,15 +476,6 @@ def schedule_attendance(request, schedule_id):
     
     return render(request, 'schedule/attendance.html', context)
 
-@login_required
-def attendance_detail(request, attendance_id):
-    """Просмотр детальной информации о записи посещаемости"""
-    attendance = get_object_or_404(Attendance, id=attendance_id)
-    
-    context = {
-        'attendance': attendance,
-    }
-    return render(request, 'attendance/detail.html', context)
 
 # ========== Студенты CRUD ==========
 

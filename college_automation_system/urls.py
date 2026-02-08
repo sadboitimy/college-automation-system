@@ -38,9 +38,6 @@ urlpatterns = [
     path('groups/', views.groups_list, name='groups_list'),
     path('groups/<int:group_id>/', views.group_detail, name='group_detail'),
 
-    path('schedule/', views.schedule_view, name='schedule'),
-    path('schedule/<int:schedule_id>/', views.schedule_detail, name='schedule_detail'),
-
     path('grades/', views.grades_view, name='grades_list'),
     path('grades/<int:grade_id>/', views.grade_detail, name='grade_detail'),
     
@@ -50,10 +47,10 @@ urlpatterns = [
     path('classrooms/', views.classrooms_list, name='classrooms_list'),
     path('classrooms/<int:classroom_id>/', views.classroom_detail, name='classroom_detail'),
 
+    path('schedule/', views.schedule_view, name='schedule'),
+    path('schedule/<int:schedule_id>/', views.schedule_detail, name='schedule_detail'),
     path('schedule/<int:schedule_id>/attendance/', views.schedule_attendance, name='schedule_attendance'),
-    path('schedule/<int:schedule_id>/attendance/', views.schedule_attendance, name='schedule_attendance'),
-    
-    path('attendance/<int:attendance_id>/', views.attendance_detail, name='attendance_detail'),
+
 # ================= CRUD Операции =================
 
     # Студенты
