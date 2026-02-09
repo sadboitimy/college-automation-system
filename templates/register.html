@@ -23,10 +23,20 @@
                     </div>
                     
                     <div class="mb-3">
+                        <label class="form-label">ФИО</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="form-label">Дата рождения</label>
+                        <input type="date" name="date_of_birth" class="form-control" required>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label">Email</label>
                         <input type="email" name="email" class="form-control" required>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Пароль</label>
                         <input type="password" name="password1" class="form-control" required>
@@ -49,3 +59,18 @@
     </div>
 </div>
 {% endblock %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dobInput = document.getElementById('date_of_birth');
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Устанавливаем максимальную дату (сегодня)
+    dobInput.max = today;
+    
+    // Устанавливаем минимальную дату (100 лет назад)
+    const minDate = new Date();
+    minDate.setFullYear(minDate.getFullYear() - 100);
+    dobInput.min = minDate.toISOString().split('T')[0];
+});
+</script>

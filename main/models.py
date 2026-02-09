@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
+from django.contrib.auth.models import User
 
 # Create your models here.
 
@@ -35,10 +36,11 @@ class Students(models.Model):
 #Студенты
 
     Name=models.CharField(max_length=100)
-    Group=models.ForeignKey(Groups, on_delete=models.CASCADE)
+    Group=models.ForeignKey(Groups, on_delete=models.SET_NULL, null=True, blank=True)
     DateOfBirth=models.DateField()
     TokenNum=models.CharField(max_length=30, unique=True)
     Email=models.EmailField()
+    user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True,blank=True, related_name='student_profile')
 
     def __str__(self):
         return f'Name={self.Name}, Group={self.Group.GroupName}, DateOfBirth={self.DateOfBirth}, TokenNum={self.TokenNum}, Email={self.Email}'
@@ -50,12 +52,13 @@ class Teachers(models.Model):
     Post=models.CharField(max_length=100)
     Department=models.CharField(max_length=200)
     Email=models.EmailField()
+    user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='teacher_profile', verbose_name='Пользователь')
 
     def __str__(self):
         return f'Name={self.Name}, Post={self.Post}, Department={self.Department}, Email={self.Email}'
     
 class Subjects(models.Model):
-#Дисциплины
+#Предметы
 
     SubjectName=models.CharField(max_length=200)
     Description=models.TextField(blank=True)

@@ -40,7 +40,9 @@ INSTALLED_APPS = [
 
     'rest_framework',
 
-    'main',
+    'django_filters',
+
+    'main.apps.MainConfig',
 ]
 
 MIDDLEWARE = [
@@ -137,3 +139,9 @@ STATICFILES_DIRS = [
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'home'
+
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+    ],
+}

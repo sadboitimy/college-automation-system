@@ -3,12 +3,23 @@ from django.contrib import messages
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.models import User
 from django.views.decorators.http import require_POST
-from .models import Groups, Teachers, Students, Subjects, Attendance, Schedule, Classrooms, Grades
+from .models import *
 from datetime import date, datetime, timedelta
 from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
 from .forms import StudentsForm, TeachersForm, GroupsForm, SubjectsForm, ScheduleForm, GradesForm, ClassroomsForm
 from django.utils import timezone
+from .permissions import *
+from .serializers import *
+from rest_framework.filters import SearchFilter
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework import viewsets, permissions, status
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.authtoken.models import Token
+from .decorators import *
+
 
 
 # Главная страница
@@ -50,21 +61,85 @@ def register_view(request):
         email = request.POST['email']
         password1 = request.POST['password1']
         password2 = request.POST['password2']
+        name = request.POST.get('name', username)
+        date_of_birth_str = request.POST.get('date_of_birth')
         
         if password1 != password2:
             messages.error(request, 'Пароли не совпадают')
+            return render(request, 'register.html')
+        
+        if len(password1) < 8:
+            messages.error(request, 'Пароль должен содержать минимум 8 символов')
             return render(request, 'register.html')
         
         if User.objects.filter(username=username).exists():
             messages.error(request, 'Пользователь с таким именем уже существует')
             return render(request, 'register.html')
         
-        user = User.objects.create_user(username=username, email=email, password=password1)
-        user.save()
+        if User.objects.filter(email=email).exists():
+            messages.error(request, 'Пользователь с таким email уже существует')
+            return render(request, 'register.html')
         
-        login(request, user)
-        messages.success(request, 'Регистрация успешна!')
-        return redirect('home')
+        try:
+            date_of_birth = datetime.strptime(date_of_birth_str, '%Y-%m-%d').date()
+            
+            today = date.today()
+            if date_of_birth > today:
+                messages.error(request, 'Дата рождения не может быть в будущем')
+                return render(request, 'register.html')
+            
+            age = today.year - date_of_birth.year - ((today.month, today.day) < (date_of_birth.month, date_of_birth.day))
+            if age < 15:
+                messages.error(request, 'Вам должно быть не менее 15 лет для регистрации')
+                return render(request, 'register.html')
+            if age > 100:
+                messages.error(request, 'Пожалуйста, укажите корректную дату рождения')
+                return render(request, 'register.html')
+                
+        except Exception as e:
+            messages.error(request, f'Ошибка в дате рождения: {str(e)}')
+            return render(request, 'register.html')
+        
+        try:
+            user = User.objects.create_user(
+                username=username, 
+                email=email, 
+                password=password1,
+                first_name=name.split()[0] if name else username,
+                last_name=' '.join(name.split()[1:]) if name and len(name.split()) > 1 else ''
+            )
+            
+            student_group, created = Group.objects.get_or_create(name='Студент')
+            user.groups.add(student_group)
+            user.save()
+            
+            token_num = f"ST{user.id:06d}"
+            
+            Students.objects.create(
+                Name=name or username,
+                user=user,
+                TokenNum=token_num,
+                Email=email,
+                DateOfBirth=date_of_birth,
+                Group=None
+            )
+            
+            messages.success(request, 'Регистрация успешна! Создан профиль студента.')
+            
+            user = authenticate(username=username, password=password1)
+            if user is not None:
+                login(request, user)
+                messages.success(request, f'Добро пожаловать, {username}!')
+                return redirect('home')
+            else:
+                messages.error(request, 'Ошибка авторизации после регистрации')
+                return redirect('login')
+            
+        except Exception as e:
+            if 'user' in locals():
+                user.delete()
+            messages.error(request, f'Ошибка регистрации: {str(e)}')
+            return render(request, 'register.html')
     
     return render(request, 'register.html')
 
@@ -77,8 +152,18 @@ def logout_view(request):
 
 # Страница со списком студентов
 @login_required
+@student_or_teacher_or_admin_required
 def students_list(request):
+    """Список студентов - все видят, но студенты видят только свою группу"""
     students = Students.objects.all().order_by('Name')
+    
+    # Для студентов показываем только их группу
+    if request.user.groups.filter(name='Студент').exists():
+        try:
+            student_profile = request.user.student_profile
+            students = students.filter(Group=student_profile.Group)
+        except:
+            students = Students.objects.none()
     
     group_id = request.GET.get('group', '')
     if group_id:
@@ -102,15 +187,34 @@ def students_list(request):
     }
     return render(request, 'students/list.html', context)
 
-# Cтраница студента
+# Страница студента
 @login_required
+@student_or_teacher_or_admin_required
 def student_detail(request, student_id):
-    student = Students.objects.get(id=student_id)
+    """Детали студента - доступ ограничен"""
+    student = get_object_or_404(Students, id=student_id)
+    
+    # Проверка доступа
+    if request.user.groups.filter(name='Студент').exists():
+        # Студенты могут видеть только свой профиль
+        try:
+            student_profile = request.user.student_profile
+            if student.id != student_profile.id:
+                raise PermissionDenied("Вы можете просматривать только свой профиль")
+        except:
+            raise PermissionDenied("Профиль студента не найден")
+    
+    # Преподаватели могут видеть всех студентов
+    elif request.user.groups.filter(name='Преподаватель').exists():
+        pass  # Могут видеть всех
     
     grades = Grades.objects.filter(Student=student).order_by('-Date')
     
-    attendance = Attendance.objects.filter(Student=student).order_by('-Date')
+    # Студенты видят только свои оценки
+    if request.user.groups.filter(name='Студент').exists():
+        grades = grades.filter(Student=student)
     
+    attendance = Attendance.objects.filter(Student=student).order_by('-Date')
     schedule = Schedule.objects.filter(Group=student.Group).order_by('Date', 'Time')
     
     context = {
@@ -123,6 +227,7 @@ def student_detail(request, student_id):
 
 # Страница со списком преподавателей
 @login_required
+@student_or_teacher_or_admin_required
 def teachers_list(request):
     teachers = Teachers.objects.all().order_by('Name')
     
@@ -144,13 +249,14 @@ def teachers_list(request):
     }
     return render(request, 'teachers/list.html', context)
 
+
 # Cтраница преподавателя
+@student_or_teacher_or_admin_required
 @login_required
 def teacher_detail(request, teacher_id):
     teacher = Teachers.objects.get(id=teacher_id)
     
     subjects = Subjects.objects.filter(Teacher=teacher)
-    
     schedule = Schedule.objects.filter(Teacher=teacher).order_by('Date', 'Time')
     
     context = {
@@ -162,6 +268,7 @@ def teacher_detail(request, teacher_id):
 
 # Страница расписания
 @login_required
+@student_or_teacher_or_admin_required
 def schedule_view(request):
     group_id = request.GET.get('group', '')
     teacher_id = request.GET.get('teacher', '')
@@ -245,16 +352,25 @@ def schedule_view(request):
 
 # Конкретное занятие в расписании
 @login_required
+@student_or_teacher_or_admin_required
 def schedule_detail(request, schedule_id):
+    """Детали занятия - с учетом ролей"""
     schedule_item = get_object_or_404(Schedule, id=schedule_id)
     
-    students = Students.objects.filter(Group=schedule_item.Group)
+    # Проверка доступа
+    if request.user.groups.filter(name='Студент').exists():
+        try:
+            student_profile = request.user.student_profile
+            if schedule_item.Group.id != student_profile.Group.id:
+                raise PermissionDenied("У вас нет доступа к этому занятию")
+        except:
+            raise PermissionDenied("Доступ запрещен")
     
+    students = Students.objects.filter(Group=schedule_item.Group)
     similar_schedule = Schedule.objects.filter(
         Date=schedule_item.Date,
         Time=schedule_item.Time
     ).exclude(id=schedule_item.id)[:3]
-    
     
     context = {
         'schedule': schedule_item,
@@ -265,9 +381,18 @@ def schedule_detail(request, schedule_id):
 
 # Страница с оценками
 @login_required
+@student_or_teacher_or_admin_required
 def grades_view(request):
     grades = Grades.objects.all().order_by('-Date')
     
+    # Студенты видят только свои оценки
+    if request.user.groups.filter(name='Студент').exists():
+        try:
+            student_profile = request.user.student_profile
+            grades = grades.filter(Student=student_profile)
+        except:
+            grades = Grades.objects.none()
+
     student_id = request.GET.get('student', '')
     subject_id = request.GET.get('subject', '')
     grade_type = request.GET.get('type', '')
@@ -298,8 +423,19 @@ def grades_view(request):
 
 # Страница с оценкой
 @login_required
+@student_or_teacher_or_admin_required
 def grade_detail(request, grade_id):
+    """Детали оценки - с учетом ролей"""
     grade = get_object_or_404(Grades, id=grade_id)
+    
+    # Проверка доступа для студентов
+    if request.user.groups.filter(name='Студент').exists():
+        try:
+            student_profile = request.user.student_profile
+            if grade.Student.id != student_profile.id:
+                raise PermissionDenied("Вы можете просматривать только свои оценки")
+        except:
+            raise PermissionDenied("Доступ запрещен")
     
     other_grades = Grades.objects.filter(
         Student=grade.Student,
@@ -314,6 +450,7 @@ def grade_detail(request, grade_id):
 
 # Страница с группами
 @login_required
+@student_or_teacher_or_admin_required
 def groups_list(request):
     groups = Groups.objects.all().order_by('GroupName')
     
@@ -337,6 +474,7 @@ def groups_list(request):
 
 # Cтраница группы
 @login_required
+@student_or_teacher_or_admin_required
 def group_detail(request, group_id):
     group = Groups.objects.get(id=group_id)
     
@@ -353,8 +491,20 @@ def group_detail(request, group_id):
 
 # Страница с предметами
 @login_required
+@student_or_teacher_or_admin_required
 def subjects_list(request):
     subjects = Subjects.objects.all().order_by('SubjectName')
+    
+    # Студентам видны только свои предметы
+    if request.user.groups.filter(name='Студент').exists():
+        try:
+            student_profile = request.user.student_profile
+            if student_profile.Group:
+                subjects = subjects.filter(schedule__Group=student_profile.Group).distinct()
+            else:
+                subjects = Subjects.objects.none()
+        except:
+            subjects = Subjects.objects.none()
     
     search = request.GET.get('search', '')
     if search:
@@ -376,13 +526,22 @@ def subjects_list(request):
 
 # Страница предмета
 @login_required
+@student_or_teacher_or_admin_required
 def subject_detail(request, subject_id):
+    """Детали предмета - с учетом ролей"""
     subject = get_object_or_404(Subjects, id=subject_id)
     
+    # Проверка доступа для студентов
+    if request.user.groups.filter(name='Студент').exists():
+        try:
+            student_profile = request.user.student_profile
+            if not Schedule.objects.filter(Subject=subject, Group=student_profile.Group).exists():
+                raise PermissionDenied("У вас нет доступа к этому предмету")
+        except:
+            raise PermissionDenied("Доступ запрещен")
+    
     groups = Groups.objects.filter(schedule__Subject=subject).distinct()
-    
     schedule = Schedule.objects.filter(Subject=subject).order_by('Date', 'Time')
-    
     grades = Grades.objects.filter(Subject=subject).order_by('-Date')[:10]
     
     context = {
@@ -395,6 +554,7 @@ def subject_detail(request, subject_id):
 
 # Страница с аудиториями
 @login_required
+@student_or_teacher_or_admin_required
 def classrooms_list(request):
     classrooms = Classrooms.objects.all().order_by('Building', 'Number')
     
@@ -418,6 +578,7 @@ def classrooms_list(request):
 
 # Страница аудитория
 @login_required
+@student_or_teacher_or_admin_required
 def classroom_detail(request, classroom_id):
     classroom = get_object_or_404(Classrooms, id=classroom_id)
     
@@ -431,9 +592,18 @@ def classroom_detail(request, classroom_id):
 
 # Страница с посещаемостью
 @login_required
+@teacher_or_admin_required
 def schedule_attendance(request, schedule_id):
     schedule_item = get_object_or_404(Schedule, id=schedule_id)
     
+    if request.user.groups.filter(name='Преподаватель').exists() and not request.user.is_staff:
+        try:
+            teacher_profile = request.user.teacher_profile
+            if schedule_item.Teacher.id != teacher_profile.id:
+                raise PermissionDenied("Вы не ведете это занятие")
+        except:
+            raise PermissionDenied("Доступ запрещен")
+
     students = Students.objects.filter(Group=schedule_item.Group).order_by('Name')
     
     if request.method == 'POST':
@@ -479,6 +649,7 @@ def schedule_attendance(request, schedule_id):
 
 # ========== Студенты CRUD ==========
 
+@admin_required
 @login_required
 def student_create(request):
     if request.method == 'POST':
@@ -496,6 +667,7 @@ def student_create(request):
         'action': 'create'
     })
 
+@admin_required
 @login_required
 def student_update(request, student_id):
     student = get_object_or_404(Students, id=student_id)
@@ -516,6 +688,7 @@ def student_update(request, student_id):
         'student': student
     })
 
+@admin_required
 @login_required
 def student_delete(request, student_id):
     student = get_object_or_404(Students, id=student_id)
@@ -531,6 +704,7 @@ def student_delete(request, student_id):
 
 # ========== Преподаватели CRUD ==========
 
+@admin_required
 @login_required
 def teacher_create(request):
     if request.method == 'POST':
@@ -548,6 +722,7 @@ def teacher_create(request):
         'action': 'create'
     })
 
+@admin_required
 @login_required
 def teacher_update(request, teacher_id):
     teacher = get_object_or_404(Teachers, id=teacher_id)
@@ -568,6 +743,7 @@ def teacher_update(request, teacher_id):
         'teacher': teacher
     })
 
+@admin_required
 @login_required
 def teacher_delete(request, teacher_id):
     teacher = get_object_or_404(Teachers, id=teacher_id)
@@ -583,6 +759,7 @@ def teacher_delete(request, teacher_id):
 
 # ========== Группы CRUD ==========
 
+@admin_required
 @login_required
 def group_create(request):
     if request.method == 'POST':
@@ -600,6 +777,7 @@ def group_create(request):
         'action': 'create'
     })
 
+@admin_required
 @login_required
 def group_update(request, group_id):
     group = get_object_or_404(Groups, id=group_id)
@@ -620,6 +798,7 @@ def group_update(request, group_id):
         'group': group
     })
 
+@admin_required
 @login_required
 def group_delete(request, group_id):
     group = get_object_or_404(Groups, id=group_id)
@@ -635,6 +814,7 @@ def group_delete(request, group_id):
 
 # ========== Расписание CRUD ==========
 
+@teacher_or_admin_required
 @login_required
 def schedule_create(request):
     if request.method == 'POST':
@@ -652,6 +832,7 @@ def schedule_create(request):
         'action': 'create'
     })
 
+@teacher_or_admin_required
 @login_required
 def schedule_update(request, schedule_id):
     schedule_item = get_object_or_404(Schedule, id=schedule_id)
@@ -672,6 +853,7 @@ def schedule_update(request, schedule_id):
         'schedule_item': schedule_item
     })
 
+@teacher_or_admin_required
 @login_required
 def schedule_delete(request, schedule_id):
     schedule_item = get_object_or_404(Schedule, id=schedule_id)
@@ -686,7 +868,7 @@ def schedule_delete(request, schedule_id):
     })
 
 # ========== Оценки CRUD ==========
-
+@teacher_or_admin_required
 @login_required
 def grade_create(request):
     if request.method == 'POST':
@@ -704,6 +886,7 @@ def grade_create(request):
         'action': 'create'
     })
 
+@teacher_or_admin_required
 @login_required
 def grade_update(request, grade_id):
     grade = get_object_or_404(Grades, id=grade_id)
@@ -724,6 +907,7 @@ def grade_update(request, grade_id):
         'grade': grade
     })
 
+@teacher_or_admin_required
 @login_required
 def grade_delete(request, grade_id):
     grade = get_object_or_404(Grades, id=grade_id)
@@ -739,6 +923,7 @@ def grade_delete(request, grade_id):
 
 # ========== Предметы CRUD ==========
 
+@admin_required
 @login_required
 def subject_create(request):
     if request.method == 'POST':
@@ -756,6 +941,7 @@ def subject_create(request):
         'action': 'create'
     })
 
+@admin_required
 @login_required
 def subject_update(request, subject_id):
     subject = get_object_or_404(Subjects, id=subject_id)
@@ -776,6 +962,7 @@ def subject_update(request, subject_id):
         'subject': subject
     })
 
+@admin_required
 @login_required
 def subject_delete(request, subject_id):
     subject = get_object_or_404(Subjects, id=subject_id)
@@ -791,6 +978,7 @@ def subject_delete(request, subject_id):
 
 # ========== Аудитории CRUD ==========
 
+@admin_required
 @login_required
 def classroom_create(request):
     if request.method == 'POST':
@@ -808,6 +996,7 @@ def classroom_create(request):
         'action': 'create'
     })
 
+@admin_required
 @login_required
 def classroom_update(request, classroom_id):
     classroom = get_object_or_404(Classrooms, id=classroom_id)
@@ -828,6 +1017,7 @@ def classroom_update(request, classroom_id):
         'classroom': classroom
     })
 
+@admin_required
 @login_required
 def classroom_delete(request, classroom_id):
     classroom = get_object_or_404(Classrooms, id=classroom_id)
@@ -840,3 +1030,158 @@ def classroom_delete(request, classroom_id):
     return render(request, 'classrooms/confirm_delete.html', {
         'classroom': classroom
     })
+
+# ========== ОСНОВНЫЕ VIEWSETS ==========
+
+class StudentViewSet(viewsets.ModelViewSet):
+    queryset = Students.objects.all()
+    serializer_class = StudentSerializer
+    permission_classes = [permissions.IsAuthenticated, StudentProfileAccess]
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_fields = ['Group', 'Course']
+    search_fields = ['Name', 'TokenNum']
+
+class TeacherViewSet(viewsets.ModelViewSet):
+    queryset = Teachers.objects.all()
+    serializer_class = TeacherSerializer
+    permission_classes = [permissions.IsAuthenticated, TeacherProfileAccess]
+    search_fields = ['Name', 'Department']
+
+class GroupViewSet(viewsets.ModelViewSet):
+    queryset = Groups.objects.all()
+    serializer_class = GroupSerializer
+    permission_classes = [permissions.IsAuthenticated, GroupAccess]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['Course', 'Specialization']
+
+class SubjectViewSet(viewsets.ModelViewSet):
+    queryset = Subjects.objects.all()
+    serializer_class = SubjectSerializer
+    permission_classes = [permissions.IsAuthenticated, SubjectAccess, StudentSubjectAccess]
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        for permission_class in self.permission_classes:
+            if hasattr(permission_class, 'filter_queryset'):
+                queryset = permission_class().filter_queryset(self.request, queryset)
+        return queryset
+
+class ScheduleViewSet(viewsets.ModelViewSet):
+    queryset = Schedule.objects.all()
+    serializer_class = ScheduleSerializer
+    permission_classes = [permissions.IsAuthenticated, ScheduleAccess, StudentScheduleAccess]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['Date', 'Group', 'Teacher', 'Subject']
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        for permission_class in self.permission_classes:
+            if hasattr(permission_class, 'filter_queryset'):
+                queryset = permission_class().filter_queryset(self.request, queryset)
+        return queryset
+
+class ClassroomViewSet(viewsets.ModelViewSet):
+    queryset = Classrooms.objects.all()
+    serializer_class = ClassroomSerializer
+    permission_classes = [permissions.IsAuthenticated, ClassroomAccess]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['Building', 'Capacity']
+
+class GradeViewSet(viewsets.ModelViewSet):
+    queryset = Grades.objects.all()
+    serializer_class = GradeSerializer
+    permission_classes = [permissions.IsAuthenticated, GradeAccess, StudentGradeAccess]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['Student', 'Subject', 'GradeType', 'Date']
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        for permission_class in self.permission_classes:
+            if hasattr(permission_class, 'filter_queryset'):
+                queryset = permission_class().filter_queryset(self.request, queryset)
+        return queryset
+
+# ========== СОЗДАНИЕ ПОЛЬЗОВАТЕЛЕЙ АДМИНИСТРАТОРОМ ==========
+
+class AdminCreateUserViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+    
+    def create(self, request):
+        serializer = AdminCreateUserSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            return Response({
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'role': 'admin' if user.is_staff else 
+                       'teacher' if user.groups.filter(name='Преподаватель').exists() else 
+                       'student'
+            }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+@login_required
+def admin_create_user(request):
+    if not request.user.is_staff:
+        messages.error(request, 'Доступ запрещен')
+        return redirect('home')
+    return render(request, 'admin/create_user.html')
+
+# ========== ПЕРСОНАЛЬНЫЕ ДАННЫЕ ==========
+
+class MyProfileViewSet(viewsets.GenericViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        user = request.user
+        serializer = UserSerializer(user)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def my_student_profile(self, request):
+        if not request.user.groups.filter(name='Студент').exists():
+            return Response({"error": "Доступно только для студентов"}, status=403)
+        try:
+            student = request.user.student_profile
+            serializer = StudentSerializer(student)
+            return Response(serializer.data)
+        except Students.DoesNotExist:
+            return Response({"error": "Профиль студента не найден"}, status=404)
+    
+    @action(detail=False, methods=['get'])
+    def my_teacher_profile(self, request):
+        if not request.user.groups.filter(name='Преподаватель').exists():
+            return Response({"error": "Доступно только для преподавателей"}, status=403)
+        try:
+            teacher = request.user.teacher_profile
+            serializer = TeacherSerializer(teacher)
+            return Response(serializer.data)
+        except Teachers.DoesNotExist:
+            return Response({"error": "Профиль преподавателя не найден"}, status=404)
+
+# ========== АУТЕНТИФИКАЦИЯ ==========
+
+class CustomAuthToken(ObtainAuthToken):
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        
+        if user.is_staff:
+            role = 'admin'
+        elif user.groups.filter(name='Преподаватель').exists():
+            role = 'teacher'
+        elif user.groups.filter(name='Студент').exists():
+            role = 'student'
+        else:
+            role = 'none'
+        
+        return Response({
+            'token': token.key,
+            'user_id': user.pk,
+            'username': user.username,
+            'email': user.email,
+            'role': role
+        })

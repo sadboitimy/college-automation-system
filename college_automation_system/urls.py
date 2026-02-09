@@ -18,15 +18,30 @@ from django.contrib import admin
 from django.urls import path, include
 from main import views
 from django.contrib.auth import views as auth_views
+from main.views import *
+from rest_framework.routers import DefaultRouter
+
+router = DefaultRouter()
+router.register(r'api/students', StudentViewSet)
+router.register(r'api/teachers', TeacherViewSet)
+router.register(r'api/groups', GroupViewSet)
+router.register(r'api/subjects', SubjectViewSet)
+router.register(r'api/schedule', ScheduleViewSet)
+router.register(r'api/classrooms', ClassroomViewSet)
+router.register(r'api/grades', GradeViewSet)
+router.register(r'api/my', MyProfileViewSet, basename='myprofile')
+router.register(r'api/admin/users', AdminCreateUserViewSet, basename='admin-users')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.home, name='home'),
 
-     # Аутентификация
+    # Аутентификация
     path('login/', views.login_view, name='login'),
     path('register/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
+    path('admin/create-user/', admin_create_user, name='admin_create_user'),
+    path('api/auth/', CustomAuthToken.as_view()),
 
     # Основные страницы
     path('students/', views.students_list, name='students_list'),

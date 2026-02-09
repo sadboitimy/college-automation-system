@@ -46,37 +46,6 @@
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'classrooms_list' %}">Аудитории</a>
                 </li>
-                {% if user.is_staff or user.teacher_profile %}
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-cog me-1"></i>Управление
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{% url 'student_create' %}">
-                            <i class="fas fa-user-plus me-2"></i>Добавить студента
-                        </a></li>
-                        <li><a class="dropdown-item" href="{% url 'teacher_create' %}">
-                            <i class="fas fa-chalkboard-teacher me-2"></i>Добавить преподавателя
-                        </a></li>
-                        <li><a class="dropdown-item" href="{% url 'group_create' %}">
-                            <i class="fas fa-users me-2"></i>Добавить группу
-                        </a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{% url 'schedule_create' %}">
-                            <i class="fas fa-calendar-plus me-2"></i>Добавить занятие
-                        </a></li>
-                        <li><a class="dropdown-item" href="{% url 'grade_create' %}">
-                            <i class="fas fa-graduation-cap me-2"></i>Добавить оценку
-                        </a></li>
-                        {% if user.is_staff %}
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="/admin/" target="_blank">
-                            <i class="fas fa-tools me-2"></i>Админ-панель
-                        </a></li>
-                        {% endif %}
-                    </ul>
-                </li>
-                {% endif %}
             </ul>
             
             <!-- Авторизация -->
