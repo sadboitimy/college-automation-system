@@ -46,6 +46,13 @@
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'classrooms_list' %}">Аудитории</a>
                 </li>
+                {% if user.is_staff %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'admin_create_user' %}">
+                        <i class="fas fa-user-plus"></i> Добавить пользователя
+                    </a>
+                </li>
+                {% endif %}
             </ul>
             
             <!-- Авторизация -->

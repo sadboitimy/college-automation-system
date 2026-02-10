@@ -7,12 +7,14 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Детали оценки</h2>
         <div>
+            {% if user.is_staff or is_teacher %}
             <a href="{% url 'grade_update' grade.id %}" class="btn btn-warning">
                 <i class="fas fa-edit"></i> Редактировать
             </a>
             <a href="{% url 'grade_delete' grade.id %}" class="btn btn-danger">
                 <i class="fas fa-trash"></i> Удалить
             </a>
+            {% endif %}
             <a href="{% url 'grades_list' %}" class="btn btn-outline-secondary">
                 Назад к списку
             </a>
@@ -60,50 +62,47 @@
         </div>
         
         <!-- Оценка и статистика -->
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5>Оценка</h5>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Оценка</h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="display-1 mb-3 
+                    {% if grade.Mark >= 85 %}text-success
+                    {% elif grade.Mark >= 60 %}text-primary
+                    {% else %}text-danger{% endif %}">
+                    {{ grade.Mark }}
                 </div>
-                <div class="card-body text-center">
-                    <div class="display-1 mb-3 
-                        {% if grade.Mark >= 85 %}text-success
-                        {% elif grade.Mark >= 60 %}text-primary
-                        {% else %}text-danger{% endif %}">
-                        {{ grade.Mark }}
-                    </div>
+                
+                <div class="mb-4">
+                    {% if grade.Mark >= 85 %}
+                        <span class="badge bg-success fs-6">Отлично</span>
+                    {% elif grade.Mark >= 70 %}
+                        <span class="badge bg-primary fs-6">Хорошо</span>
+                    {% elif grade.Mark >= 60 %}
+                        <span class="badge bg-warning fs-6">Удовлетворительно</span>
+                    {% else %}
+                        <span class="badge bg-danger fs-6">Неудовлетворительно</span>
+                    {% endif %}
+                </div>
                     
-                    <div class="mb-4">
-                        {% if grade.Mark >= 85 %}
-                            <span class="badge bg-success fs-6">Отлично</span>
-                        {% elif grade.Mark >= 70 %}
-                            <span class="badge bg-primary fs-6">Хорошо</span>
-                        {% elif grade.Mark >= 60 %}
-                            <span class="badge bg-warning fs-6">Удовлетворительно</span>
+                <!-- Дополнительная информация -->
+                <div class="text-start">
+                    <p><strong>Статус:</strong>
+                        {% if grade.Mark >= 60 %}
+                            <span class="text-success">Сдано</span>
                         {% else %}
-                            <span class="badge bg-danger fs-6">Неудовлетворительно</span>
+                            <span class="text-danger">Не сдано</span>
                         {% endif %}
-                    </div>
+                    </p>
                     
-                    <!-- Дополнительная информация -->
-                    <div class="text-start">
-                        <p><strong>Статус:</strong>
-                            {% if grade.Mark >= 60 %}
-                                <span class="text-success">Сдано</span>
-                            {% else %}
-                                <span class="text-danger">Не сдано</span>
-                            {% endif %}
-                        </p>
-                        
-                        <!-- Средняя оценка студента по этому предмету -->
-                        {% with avg_mark=grade.Student.grades_set.filter.Subject=grade.Subject|avg:'Mark' %}
-                        {% if avg_mark %}
-                        <p><strong>Средний балл по предмету:</strong>
-                            <span class="badge bg-info">{{ avg_mark|floatformat:1 }}</span>
-                        </p>
-                        {% endif %}
-                        {% endwith %}
-                    </div>
+                    <!-- Средняя оценка студента по этому предмету -->
+                    {% if avg_mark %}
+                    <p><strong>Средний балл по предмету:</strong>
+                        <span class="badge bg-info">{{ avg_mark|floatformat:1 }}</span>
+                    </p>
+                    {% endif %}
                 </div>
             </div>
             
@@ -113,7 +112,6 @@
                     <h5>Другие оценки по этому предмету</h5>
                 </div>
                 <div class="card-body">
-                    {% with other_grades=grade.Student.grades_set.filter.Subject=grade.Subject.exclude.id=grade.id|slice:":5" %}
                     {% if other_grades %}
                     <div class="list-group">
                         {% for other_grade in other_grades %}
@@ -137,7 +135,6 @@
                     {% else %}
                     <p class="text-muted">Других оценок нет</p>
                     {% endif %}
-                    {% endwith %}
                 </div>
             </div>
         </div>

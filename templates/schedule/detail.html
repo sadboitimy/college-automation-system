@@ -7,13 +7,14 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Детали занятия</h2>
         <div>
+            {% if user.is_staff or is_teacher %}
             <a href="{% url 'schedule_update' schedule.id %}" class="btn btn-warning">
                 <i class="fas fa-edit"></i> Редактировать
             </a>
             <a href="{% url 'schedule_delete' schedule.id %}" class="btn btn-danger">
                 <i class="fas fa-trash"></i> Удалить
             </a>
-            
+            {% endif %}
             <a href="{% url 'schedule' %}" class="btn btn-outline-secondary">
                 Назад к расписанию
             </a>

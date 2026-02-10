@@ -33,6 +33,7 @@ router.register(r'api/my', MyProfileViewSet, basename='myprofile')
 router.register(r'api/admin/users', AdminCreateUserViewSet, basename='admin-users')
 
 urlpatterns = [
+    path('admin/create-user/', admin_create_user, name='admin_create_user'),
     path('admin/', admin.site.urls),
     path('', views.home, name='home'),
 
@@ -40,7 +41,7 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('register/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
-    path('admin/create-user/', admin_create_user, name='admin_create_user'),
+
     path('api/auth/', CustomAuthToken.as_view()),
 
     # Основные страницы

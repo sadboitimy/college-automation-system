@@ -7,12 +7,14 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>{{ teacher.Name }}</h2>
         <div>
+            {% if user.is_staff %}
             <a href="{% url 'teacher_update' teacher.id %}" class="btn btn-warning">
                 <i class="fas fa-edit"></i> Редактировать
             </a>
             <a href="{% url 'teacher_delete' teacher.id %}" class="btn btn-danger">
                 <i class="fas fa-trash"></i> Удалить
             </a>
+            {% endif %}
             <a href="{% url 'teachers_list' %}" class="btn btn-outline-secondary">
                 Назад к списку
             </a>
@@ -90,9 +92,9 @@
                                     <td>{{ lesson.Date|date:"d.m.Y" }}</td>
                                     <td>{{ lesson.Time|time:"H:i" }}</td>
                                     <td>
-                                        <a href="#">
+                                        <p class="mb-1">
                                             {{ lesson.Subject.SubjectName }}
-                                        </a>
+                                        </pз>
                                     </td>
                                     <td>
                                         <a href="{% url 'group_detail' lesson.Group.id %}">
@@ -113,52 +115,6 @@
                     </div>
                     {% else %}
                     <p class="text-muted">Расписание не найдено</p>
-                    {% endif %}
-                </div>
-            </div>
-            
-            <!-- Группы преподавателя -->
-            <div class="card mt-3">
-                <div class="card-header">
-                    <h5>Преподает группам</h5>
-                </div>
-                <div class="card-body">
-                    {% if schedule %}
-                    <div class="row">
-                        {% regroup schedule by Group as groups_list %}
-                        {% for group_item in groups_list %}
-                        <div class="col-md-6 mb-2">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h6>
-                                        <a href="{% url 'group_detail' group_item.grouper.id %}">
-                                            {{ group_item.grouper.GroupName }}
-                                        </a>
-                                    </h6>
-                                    <p class="mb-1">
-                                        <small>
-                                            Курс: {{ group_item.grouper.Course }}<br>
-                                            Специальность: {{ group_item.grouper.get_Specialization_display }}
-                                        </small>
-                                    </p>
-                                    <p class="mb-0">
-                                        <small class="text-muted">
-                                            Предметы: 
-                                            {% for lesson in group_item.list|slice:":2" %}
-                                                {{ lesson.Subject.SubjectName }}{% if not forloop.last %}, {% endif %}
-                                            {% endfor %}
-                                            {% if group_item.list|length > 2 %}
-                                                ...
-                                            {% endif %}
-                                        </small>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <p class="text-muted">Нет групп</p>
                     {% endif %}
                 </div>
             </div>

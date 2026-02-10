@@ -55,6 +55,7 @@
             </div>
         </div>
         
+    <div class="row justify-content-center">
         <div class="col-md-3 mb-4">
             <div class="card text-center border-0 shadow h-100">
                 <div class="card-body d-flex flex-column">
@@ -87,18 +88,8 @@
                 </div>
             </div>
         </div>
-        
-        <div class="col-md-3 mb-4">
-            <div class="card text-center border-0 shadow h-100">
-                <div class="card-body d-flex flex-column">
-                    <i class="fas fa-clipboard-check fa-3x text-primary mb-3"></i>
-                    <h5 class="card-title">Посещаемость</h5>
-                    <p class="card-text flex-grow-1">Учет посещаемости занятий</p>
-                    <a href="{% url 'schedule' %}" class="btn btn-primary mt-2">Перейти</a>
-                </div>
-            </div>
-        </div>
-    
+    </div>
+
     {% if not user.is_authenticated %}
     <div class="row mt-5">
         <div class="col-md-6 mx-auto">

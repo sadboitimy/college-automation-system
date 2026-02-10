@@ -43,7 +43,7 @@ class Students(models.Model):
     user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True,blank=True, related_name='student_profile')
 
     def __str__(self):
-        return f'Name={self.Name}, Group={self.Group.GroupName}, DateOfBirth={self.DateOfBirth}, TokenNum={self.TokenNum}, Email={self.Email}'
+        return f'Name={self.Name}, Group={self.Group.GroupName if self.Group else "Без группы"}, DateOfBirth={self.DateOfBirth}, TokenNum={self.TokenNum}, Email={self.Email}'
     
 class Teachers(models.Model):
 #Преподаватели

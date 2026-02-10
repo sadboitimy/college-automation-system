@@ -1,39 +1,137 @@
-<form method="post">
-    {% csrf_token %}
-    
-    <div class="form-group">
-        <label for="name">ФИО:</label>
-        <input type="text" name="name" id="name" class="form-control" required>
+{% extends 'base.html' %}
+
+{% block title %}Добавить пользователя{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-plus"></i> Создать нового пользователя
+                    </h4>
+                </div>
+                <div class="card-body">
+                    
+                    {% if messages %}
+                    <div class="mb-3">
+                        {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <h5 class="mb-3">Основная информация</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="name" class="form-label">ФИО *</label>
+                                <input type="text" name="name" id="name" class="form-control" required>
+                                <div class="form-text">Полное имя пользователя</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="date_of_birth" class="form-label">Дата рождения *</label>
+                                <input type="date" name="date_of_birth" id="date_of_birth" class="form-control" required>
+                            </div>
+                        </div>
+                        
+                        <h5 class="mb-3 mt-4">Учетные данные</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="username" class="form-label">Имя пользователя *</label>
+                                <input type="text" name="username" id="username" class="form-control" required>
+                                <div class="form-text">Уникальное имя для входа в систему</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">Email *</label>
+                                <input type="email" name="email" id="email" class="form-control" required>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="password" class="form-label">Пароль *</label>
+                                <input type="password" name="password" id="password" class="form-control" required>
+                                <div class="form-text">Минимум 8 символов</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="confirm_password" class="form-label">Подтверждение пароля *</label>
+                                <input type="password" name="confirm_password" id="confirm_password" class="form-control" required>
+                            </div>
+                        </div>
+                        
+                        <h5 class="mb-3 mt-4">Роль в системе</h5>
+                        <div class="mb-4">
+                            <label for="role" class="form-label">Роль пользователя *</label>
+                            <select name="role" id="role" class="form-control" required>
+                                <option value="">Выберите роль</option>
+                                <option value="student">Студент</option>
+                                <option value="teacher">Преподаватель</option>
+                                <option value="admin">Администратор</option>
+                            </select>
+                            <div class="form-text">
+                                <ul class="small mb-0 mt-1">
+                                    <li><strong>Студент:</strong> доступ к своему профилю, оценкам, расписанию</li>
+                                    <li><strong>Преподаватель:</strong> доступ к ведению занятий, оценкам, расписанию</li>
+                                    <li><strong>Администратор:</strong> полный доступ ко всем функциям системы</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Отмена
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-user-plus"></i> Создать пользователя
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5><i class="fas fa-info-circle"></i> Информация</h5>
+                    <ul class="mb-0">
+                        <li>При создании студента автоматически генерируется номер зачетки</li>
+                        <li>Преподавателям можно будет назначить предметы после создания</li>
+                        <li>Администраторы получают полный доступ к системе</li>
+                        <li>Все поля обязательны для заполнения</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
     </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Проверка совпадения паролей
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('confirm_password');
     
-    <div class="form-group">
-        <label for="date_of_birth">Дата рождения:</label>
-        <input type="date" name="date_of_birth" id="date_of_birth" class="form-control" required>
-    </div>
+    function validatePassword() {
+        if (password.value !== confirmPassword.value) {
+            confirmPassword.setCustomValidity('Пароли не совпадают');
+        } else {
+            confirmPassword.setCustomValidity('');
+        }
+    }
     
-    <div class="form-group">
-        <label for="username">Имя пользователя:</label>
-        <input type="text" name="username" id="username" class="form-control" required>
-    </div>
+    password.onchange = validatePassword;
+    confirmPassword.onkeyup = validatePassword;
     
-    <div class="form-group">
-        <label for="email">Email:</label>
-        <input type="email" name="email" id="email" class="form-control" required>
-    </div>
-    
-    <div class="form-group">
-        <label for="password">Пароль:</label>
-        <input type="password" name="password" id="password" class="form-control" required>
-    </div>
-    
-    <div class="form-group">
-        <label for="role">Роль:</label>
-        <select name="role" id="role" class="form-control" required>
-            <option value="student">Студент</option>
-            <option value="teacher">Преподаватель</option>
-            <option value="admin">Администратор</option>
-        </select>
-    </div>
-    
-    <button type="submit" class="btn btn-primary">Создать пользователя</button>
-</form>
+    // Ограничение даты рождения
+    const dateInput = document.getElementById('date_of_birth');
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.max = today;
+});
+</script>
+{% endblock %}

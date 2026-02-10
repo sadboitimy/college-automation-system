@@ -8,7 +8,6 @@ from datetime import date, datetime, timedelta
 from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
 from .forms import StudentsForm, TeachersForm, GroupsForm, SubjectsForm, ScheduleForm, GradesForm, ClassroomsForm
-from django.utils import timezone
 from .permissions import *
 from .serializers import *
 from rest_framework.filters import SearchFilter
@@ -24,19 +23,7 @@ from .decorators import *
 
 # Главная страница
 def home(request):
-    if not request.user.is_authenticated:
-        return render(request, 'home.html')
-    
-
-    context = {
-        'students_count': Students.objects.count(),
-        'teachers_count': Teachers.objects.count(),
-        'groups_count': Groups.objects.count(),
-        'subjects_count': Subjects.objects.count(),
-        'schedule_count': Schedule.objects.count(),
-    }
-    
-    return render(request, 'home.html', context)
+    return render(request, 'home.html')
 
 # Вход
 def login_view(request):
@@ -89,8 +76,8 @@ def register_view(request):
                 return render(request, 'register.html')
             
             age = today.year - date_of_birth.year - ((today.month, today.day) < (date_of_birth.month, date_of_birth.day))
-            if age < 15:
-                messages.error(request, 'Вам должно быть не менее 15 лет для регистрации')
+            if age < 16:
+                messages.error(request, 'Вам должно быть не менее 16 лет для регистрации')
                 return render(request, 'register.html')
             if age > 100:
                 messages.error(request, 'Пожалуйста, укажите корректную дату рождения')
@@ -206,7 +193,7 @@ def student_detail(request, student_id):
     
     # Преподаватели могут видеть всех студентов
     elif request.user.groups.filter(name='Преподаватель').exists():
-        pass  # Могут видеть всех
+        pass
     
     grades = Grades.objects.filter(Student=student).order_by('-Date')
     
@@ -214,13 +201,11 @@ def student_detail(request, student_id):
     if request.user.groups.filter(name='Студент').exists():
         grades = grades.filter(Student=student)
     
-    attendance = Attendance.objects.filter(Student=student).order_by('-Date')
     schedule = Schedule.objects.filter(Group=student.Group).order_by('Date', 'Time')
     
     context = {
         'student': student,
         'grades': grades,
-        'attendance': attendance,
         'schedule': schedule[:10],
     }
     return render(request, 'students/detail.html', context)
@@ -354,7 +339,7 @@ def schedule_view(request):
 @login_required
 @student_or_teacher_or_admin_required
 def schedule_detail(request, schedule_id):
-    """Детали занятия - с учетом ролей"""
+    """Детали занятия"""
     schedule_item = get_object_or_404(Schedule, id=schedule_id)
     
     # Проверка доступа
@@ -425,10 +410,10 @@ def grades_view(request):
 @login_required
 @student_or_teacher_or_admin_required
 def grade_detail(request, grade_id):
-    """Детали оценки - с учетом ролей"""
+    """Детали оценки"""
     grade = get_object_or_404(Grades, id=grade_id)
     
-    # Проверка доступа для студентов
+    # Проверка доступа
     if request.user.groups.filter(name='Студент').exists():
         try:
             student_profile = request.user.student_profile
@@ -442,9 +427,17 @@ def grade_detail(request, grade_id):
         Subject=grade.Subject
     ).exclude(id=grade.id).order_by('-Date')[:5]
     
+    # Средний балл
+    from django.db.models import Avg
+    avg_mark = Grades.objects.filter(
+        Student=grade.Student,
+        Subject=grade.Subject
+    ).aggregate(avg_mark=Avg('Mark'))['avg_mark']
+    
     context = {
         'grade': grade,
         'other_grades': other_grades,
+        'avg_mark': avg_mark,
     }
     return render(request, 'grades/detail.html', context)
 
@@ -528,7 +521,6 @@ def subjects_list(request):
 @login_required
 @student_or_teacher_or_admin_required
 def subject_detail(request, subject_id):
-    """Детали предмета - с учетом ролей"""
     subject = get_object_or_404(Subjects, id=subject_id)
     
     # Проверка доступа для студентов
@@ -1125,6 +1117,101 @@ def admin_create_user(request):
     if not request.user.is_staff:
         messages.error(request, 'Доступ запрещен')
         return redirect('home')
+    
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        date_of_birth_str = request.POST.get('date_of_birth', '')
+        username = request.POST.get('username', '').strip()
+        email = request.POST.get('email', '').strip()
+        password = request.POST.get('password', '')
+        confirm_password = request.POST.get('confirm_password', '')
+        role = request.POST.get('role', 'student')
+        
+        # Валидация
+        errors = []
+        
+        if not name:
+            errors.append('Введите ФИО')
+        
+        if not date_of_birth_str:
+            errors.append('Введите дату рождения')
+        else:
+            try:
+                date_of_birth = datetime.strptime(date_of_birth_str, '%Y-%m-%d').date()
+                today = date.today()
+                if date_of_birth > today:
+                    errors.append('Дата рождения не может быть в будущем')
+            except ValueError:
+                errors.append('Некорректная дата рождения')
+        
+        if not username:
+            errors.append('Введите имя пользователя')
+        elif User.objects.filter(username=username).exists():
+            errors.append('Пользователь с таким именем уже существует')
+        
+        if not email:
+            errors.append('Введите email')
+        elif User.objects.filter(email=email).exists():
+            errors.append('Пользователь с таким email уже существует')
+        
+        if not password:
+            errors.append('Введите пароль')
+        elif len(password) < 8:
+            errors.append('Пароль должен содержать минимум 8 символов')
+        elif password != confirm_password:
+            errors.append('Пароли не совпадают')
+        
+        if not role:
+            errors.append('Выберите роль')
+        
+        if errors:
+            for error in errors:
+                messages.error(request, error)
+            return render(request, 'admin/create_user.html')
+        
+        try:
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password,
+                first_name=name.split()[0] if name.split() else name,
+                last_name=' '.join(name.split()[1:]) if len(name.split()) > 1 else ''
+            )
+            
+            if role == 'admin':
+                user.is_staff = True
+                user.is_superuser = True
+                user.save()
+            elif role == 'teacher':
+                teacher_group, created = Group.objects.get_or_create(name='Преподаватель')
+                user.groups.add(teacher_group)
+
+                Teachers.objects.create(
+                    Name=name,
+                    user=user,
+                    Email=email
+                )
+            elif role == 'student':
+                student_group, created = Group.objects.get_or_create(name='Студент')
+                user.groups.add(student_group)
+                token_num = f"ST{user.id:06d}"
+
+                Students.objects.create(
+                    Name=name,
+                    user=user,
+                    TokenNum=token_num,
+                    Email=email,
+                    DateOfBirth=date_of_birth,
+                    Group=None
+                )
+            
+            messages.success(request, f'Пользователь "{username}" успешно создан!')
+            return redirect('admin_create_user')
+            
+        except Exception as e:
+            messages.error(request, f'Ошибка при создании пользователя: {str(e)}')
+            return render(request, 'admin/create_user.html')
+    
     return render(request, 'admin/create_user.html')
 
 # ========== ПЕРСОНАЛЬНЫЕ ДАННЫЕ ==========

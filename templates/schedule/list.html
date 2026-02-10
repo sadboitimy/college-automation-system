@@ -7,9 +7,11 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Расписание</h2>
         <div>
+            {% if is_teacher or user.is_staff %}
             <a href="{% url 'schedule_create' %}" class="btn btn-success">
                 <i class="fas fa-plus"></i> Добавить
             </a>
+            {% endif %}
             <a href="{% url 'home' %}" class="btn btn-outline-secondary">Назад</a>
         </div>
     </div>
@@ -94,11 +96,13 @@
                                                             -
                                                         {% endif %}
                                                     </small>
+                                                    {% if user.is_staff or is_teacher %}
                                                     <a href="{% url 'schedule_detail' lesson.id %}" 
                                                        class="btn btn-sm btn-outline-primary mt-1 w-100">
                                                        Подробнее
                                                         <i class="fas fa-eye"></i>
                                                     </a>
+                                                    {% endif %}
                                                 </div>
                                             </div>
                                         {% endfor %}
@@ -164,6 +168,7 @@
                                                         {% endif %}
                                                     </small>
                                                     <div class="mt-1">
+                                                        {% if user.is_staff or is_teacher %}
                                                         <a href="{% url 'schedule_detail' lesson.id %}" 
                                                            class="btn btn-sm btn-outline-info">Подробнее
                                                             <i class="fas fa-eye"></i>
@@ -172,6 +177,7 @@
                                                            class="btn btn-sm btn-outline-success">Отметить
                                                             <i class="fas fa-clipboard-check"></i>
                                                         </a>
+                                                        {% endif %}
                                                     </div>
                                                 </div>
                                             </div>

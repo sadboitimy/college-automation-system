@@ -6,5 +6,4 @@ class MainConfig(AppConfig):
     name = 'main'
 
     def ready(self):
-        # Импортируем сигналы только когда приложение готово
         import main.signals

@@ -7,12 +7,14 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>{{ subject.SubjectName }}</h2>
         <div>
+            {% if user.is_staff %}
             <a href="{% url 'subject_update' subject.id %}" class="btn btn-warning">
                 <i class="fas fa-edit"></i> Редактировать
             </a>
             <a href="{% url 'subject_delete' subject.id %}" class="btn btn-danger">
                 <i class="fas fa-trash"></i> Удалить
             </a>
+            {% endif %}
             <a href="{% url 'subjects_list' %}" class="btn btn-outline-secondary">
                 Назад к списку
             </a>
@@ -82,6 +84,7 @@
                 </div>
             </div>
             
+            {% if user.is_staff or is_teacher %}
             <!-- Последние оценки по предмету -->
             <div class="card mt-3">
                 <div class="card-header">
@@ -127,6 +130,7 @@
                     {% endif %}
                 </div>
             </div>
+            {% endif %}
         </div>
     </div>
 </div>

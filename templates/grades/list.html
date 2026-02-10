@@ -7,9 +7,11 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Оценки</h2>
         <div>
+            {% if user.is_staff or is_teacher %}
             <a href="{% url 'grade_create' %}" class="btn btn-success">
                 <i class="fas fa-plus"></i> Добавить
             </a>
+            {% endif %}
             <a href="{% url 'home' %}" class="btn btn-outline-secondary">Назад</a>
         </div>
     </div>
@@ -74,6 +76,7 @@
                     <th>Дата</th>
                     <th>Тип</th>
                     <th>Балл</th>
+                    <th>Действия</th>
                 </tr>
             </thead>
             <tbody>
@@ -91,6 +94,7 @@
                             {{ grade.Mark }}
                         </span>
                     </td>
+                    <td><a href="{% url 'grade_detail' grade.id %}" class="btn btn-primary btn-sm">Подробнее</a></td>
                 </tr>
                 {% endfor %}
             </tbody>

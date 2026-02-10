@@ -37,17 +37,14 @@ class AdminCreateUserSerializer(serializers.ModelSerializer):
         role = validated_data.pop('role')
         name = validated_data.pop('name')
         
-        # Создаем пользователя Django
         user = User.objects.create(
             username=validated_data['username'],
             email=validated_data.get('email', ''),
-            # Для User модели используем name как first_name
             first_name=name.split()[0] if name.split() else name,
             last_name=' '.join(name.split()[1:]) if len(name.split()) > 1 else '',
             password=make_password(validated_data['password'])
         )
         
-        # Назначаем роль
         if role == 'admin':
             user.is_staff = True
             user.is_superuser = True
@@ -59,7 +56,7 @@ class AdminCreateUserSerializer(serializers.ModelSerializer):
             student_group = Group.objects.get(name='Студент')
             user.groups.add(student_group)
         
-        # Создаем профиль в нашей системе
+        # Создаем профиль в системе
         if role == 'teacher':
             Teachers.objects.create(
                 Name=name,
