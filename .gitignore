@@ -7,7 +7,6 @@
 *.db
 db.sqlite3
 db.sqlite3-journal
-main/migrations/0001_initial.py
 
 # Миграции (можно раскомментировать если не хотите их в репозитории)
 # */migrations/*.py
